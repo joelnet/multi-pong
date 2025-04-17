@@ -1,0 +1,10 @@
+{
+  "name": "multi-pong",
+  "version": "1.0.0",
+  "description": "",
+  "keywords": [],
+  "author": "Joel Thoms",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {}
+}
