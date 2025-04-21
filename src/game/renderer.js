@@ -1,5 +1,4 @@
 import settings from '../settings.json';
-import { createParticleEffect } from '../effects/particles.js';
 
 /**
  * @typedef {import('../types/index.js').GameState} GameState
@@ -19,10 +18,17 @@ export class GameRenderer {
     this.resize();
 
     // Set up resize listener
-    window.addEventListener('resize', () => this.resize());
+    window.addEventListener('resize', this.resize.bind(this));
 
     // Particle effects container
     this.particles = [];
+
+    // Trail effect for the ball
+    this.ballTrail = [];
+    this.maxTrailLength = 10;
+
+    // For debug visualization
+    this.showDebugInfo = false;
   }
 
   /**
@@ -60,11 +66,22 @@ export class GameRenderer {
     this.drawPaddle(gameState.localPlayer.paddle, true);
     this.drawPaddle(gameState.remotePlayer.paddle, false);
 
+    // Update ball trail
+    this.updateBallTrail(gameState.ball);
+
+    // Draw the ball trail
+    this.drawBallTrail();
+
     // Draw the ball
     this.drawBall(gameState.ball);
 
     // Draw particle effects
     this.updateAndDrawParticles();
+
+    // Draw debug info if enabled
+    if (this.showDebugInfo) {
+      this.drawDebugInfo(gameState);
+    }
   }
 
   /**
@@ -134,6 +151,44 @@ export class GameRenderer {
   }
 
   /**
+   * Update the ball trail
+   * @param {import('../types/index.js').Ball} ball - The ball to update trail for
+   * @private
+   */
+  updateBallTrail(ball) {
+    // Add current position to trail
+    this.ballTrail.unshift({
+      x: ball.x * this.scaleX,
+      y: ball.y * this.scaleY,
+      z: ball.z,
+      radius: ball.radius * this.scaleX * (1 - ball.z / settings.fieldDepth),
+    });
+
+    // Limit trail length
+    if (this.ballTrail.length > this.maxTrailLength) {
+      this.ballTrail.pop();
+    }
+  }
+
+  /**
+   * Draw the ball trail
+   * @private
+   */
+  drawBallTrail() {
+    const ctx = this.ctx;
+
+    for (let i = 0; i < this.ballTrail.length; i++) {
+      const trailPoint = this.ballTrail[i];
+      const opacity = 1 - i / this.maxTrailLength;
+
+      ctx.fillStyle = `rgba(0, 243, 255, ${opacity * 0.5})`;
+      ctx.beginPath();
+      ctx.arc(trailPoint.x, trailPoint.y, trailPoint.radius * 0.8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  /**
    * Draw the ball
    * @param {import('../types/index.js').Ball} ball - The ball to draw
    * @private
@@ -153,11 +208,53 @@ export class GameRenderer {
     ctx.shadowColor = '#00f3ff';
     ctx.shadowBlur = 15;
     ctx.beginPath();
-    ctx.arc(x, y, ballSize, 0, Math.PI * 2);
+    ctx.arc(x, y, ballSize / 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Add inner highlight
+    ctx.fillStyle = '#00f3ff';
+    ctx.shadowBlur = 0;
+    ctx.beginPath();
+    ctx.arc(x, y, ballSize / 4, 0, Math.PI * 2);
     ctx.fill();
 
     // Reset shadow
     ctx.shadowBlur = 0;
+  }
+
+  /**
+   * Draw debug information
+   * @param {GameState} gameState - The current game state
+   * @private
+   */
+  drawDebugInfo(gameState) {
+    const ctx = this.ctx;
+    const ball = gameState.ball;
+
+    // Draw ball velocity vector
+    const velocityScale = 10;
+    const startX = ball.x * this.scaleX;
+    const startY = ball.y * this.scaleY;
+    const endX = startX + ball.velocityX * velocityScale;
+    const endY = startY + ball.velocityY * velocityScale;
+
+    ctx.strokeStyle = '#ff0000';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(endX, endY);
+    ctx.stroke();
+
+    // Draw ball z-position indicator
+    const zText = `Z: ${ball.z.toFixed(1)}`;
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '12px Arial';
+    ctx.fillText(zText, startX + 15, startY - 15);
+
+    // Draw ball speed
+    const speed = Math.sqrt(ball.velocityX ** 2 + ball.velocityY ** 2 + ball.velocityZ ** 2);
+    const speedText = `Speed: ${speed.toFixed(1)}`;
+    ctx.fillText(speedText, startX + 15, startY);
   }
 
   /**
@@ -167,14 +264,39 @@ export class GameRenderer {
    * @param {string} color - Particle color
    */
   createParticleEffect(x, y, color = '#00f3ff') {
-    const particles = createParticleEffect({
-      x: x * this.scaleX,
-      y: y * this.scaleY,
-      count: 20,
-      color,
-      speed: 5,
-      lifetime: 1000,
-    });
+    const particleCount = 20;
+    const particles = [];
+
+    for (let i = 0; i < particleCount; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 1 + Math.random() * 4;
+      const size = 1 + Math.random() * 3;
+
+      // Parse color to RGB
+      let r, g, b;
+      if (color.startsWith('#')) {
+        const hex = color.substring(1);
+        r = parseInt(hex.substring(0, 2), 16);
+        g = parseInt(hex.substring(2, 4), 16);
+        b = parseInt(hex.substring(4, 6), 16);
+      } else {
+        // Default to cyan if color parsing fails
+        r = 0;
+        g = 243;
+        b = 255;
+      }
+
+      particles.push({
+        x: x * this.scaleX,
+        y: y * this.scaleY,
+        velocityX: Math.cos(angle) * speed,
+        velocityY: Math.sin(angle) * speed,
+        size,
+        color: { r, g, b },
+        lifetime: 1000,
+        createdAt: performance.now(),
+      });
+    }
 
     this.particles.push(...particles);
   }
@@ -239,5 +361,12 @@ export class GameRenderer {
     };
 
     requestAnimationFrame(shake);
+  }
+
+  /**
+   * Toggle debug information display
+   */
+  toggleDebugInfo() {
+    this.showDebugInfo = !this.showDebugInfo;
   }
 }
