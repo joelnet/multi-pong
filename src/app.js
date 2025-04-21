@@ -388,7 +388,23 @@ function handleMessage(message) {
   if (gameEngine) {
     switch (message.type) {
       case 'ball':
-        gameEngine.updateFromRemote({ ball: message.data });
+        // Guest receives ball data from host and transforms Y components for its view
+        if (!isHost) {
+          if (message.data) {
+            const receivedBall = message.data;
+            const fieldHeight = settings.fieldHeight; // Use settings
+            const transformedBall = {
+              ...receivedBall, // Copy all properties first
+              y: fieldHeight - receivedBall.y, // Flip Y position
+              velocityY: -receivedBall.velocityY, // Flip Y velocity
+              // x and velocityX remain the same as host's
+            };
+            gameEngine.updateFromRemote({ ball: transformedBall });
+          } else {
+            console.warn('Guest received invalid ball data:', message.data);
+          }
+        }
+        // Host ignores ball messages (it's the source of truth)
         break;
       case 'paddle':
         gameEngine.updateFromRemote({ remotePaddle: message.data });
