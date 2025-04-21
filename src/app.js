@@ -477,17 +477,9 @@ function handleMessage(message) {
         gameEngine.updateFromRemote({ score: message.data });
         break;
       case 'ping':
-        console.log('Received ping message:', message.data);
-        // Ping messages are automatically handled by the Connection class
-        // The guest will automatically respond with a pong
         break;
       case 'pong': {
-        console.log('Received pong message:', message.data);
-        // Calculate round-trip time
         const rtt = Date.now() - message.data.pingTimestamp;
-        console.log(`Round-trip time: ${rtt}ms`);
-
-        // Update ping display in all UI elements
         updatePingDisplay(rtt);
         break;
       }
@@ -514,7 +506,7 @@ function handleMessage(message) {
  * @param {number} rtt - Round trip time in milliseconds
  */
 function updatePingDisplay(rtt) {
-  console.log('Setting ping text to:', `Ping: ${rtt}ms`);
+  const pingText = `Ping: ${rtt}ms`;
 
   // Try direct DOM manipulation first
   try {
@@ -522,26 +514,19 @@ function updatePingDisplay(rtt) {
     const pingStatus = document.getElementById('ping-status');
     const gamePingStatus = document.getElementById('game-ping-status');
 
-    console.log('Direct element access - ping-status:', pingStatus);
-    console.log('Direct element access - game-ping-status:', gamePingStatus);
-
     // Update them if they exist
     if (pingStatus) {
-      pingStatus.textContent = `Ping: ${rtt}ms`;
-      console.log('Updated ping-status directly:', pingStatus.textContent);
+      pingStatus.textContent = pingText;
     }
 
     if (gamePingStatus) {
-      gamePingStatus.textContent = `Ping: ${rtt}ms`;
-      console.log('Updated game-ping-status directly:', gamePingStatus.textContent);
+      gamePingStatus.textContent = pingText;
     }
 
     // Fallback to query selector if direct access didn't work
     if (!pingStatus && !gamePingStatus) {
-      console.log('No ping elements found by ID, trying querySelector');
       document.querySelectorAll('[id$="ping-status"]').forEach(element => {
-        console.log('Found ping status element via query:', element.id);
-        element.textContent = `Ping: ${rtt}ms`;
+        element.textContent = pingText;
       });
     }
 
@@ -551,15 +536,13 @@ function updatePingDisplay(rtt) {
       !gamePingStatus &&
       document.querySelectorAll('[id$="ping-status"]').length === 0
     ) {
-      console.log('No ping elements found at all, creating one');
       const gameScreen = document.getElementById('game-screen');
       if (gameScreen) {
         const newPingStatus = document.createElement('div');
         newPingStatus.id = 'emergency-ping-status';
         newPingStatus.className = 'status game-status';
-        newPingStatus.textContent = `Ping: ${rtt}ms`;
+        newPingStatus.textContent = pingText;
         gameScreen.appendChild(newPingStatus);
-        console.log('Created emergency ping status element');
       }
     }
   } catch (error) {
@@ -934,7 +917,6 @@ function submitAnswer() {
 
 // Add a global function to update ping display that can be called from anywhere
 window.updatePing = function (rtt) {
-  console.log('Global updatePing called with rtt:', rtt);
   const pingText = `Ping: ${rtt}ms`;
 
   // Try to update both ping status elements
@@ -943,17 +925,14 @@ window.updatePing = function (rtt) {
 
   if (pingStatus) {
     pingStatus.textContent = pingText;
-    console.log('Updated ping-status via global function');
   }
 
   if (gamePingStatus) {
     gamePingStatus.textContent = pingText;
-    console.log('Updated game-ping-status via global function');
   }
 
   // If neither element was found, create a fallback
   if (!pingStatus && !gamePingStatus) {
-    console.warn('No ping elements found, creating fallback via global function');
     const gameScreen = document.getElementById('game-screen');
     if (gameScreen) {
       // Check if we already created a fallback
@@ -968,7 +947,6 @@ window.updatePing = function (rtt) {
         fallbackPing.style.color = '#00f3ff';
         fallbackPing.style.zIndex = '1000';
         gameScreen.appendChild(fallbackPing);
-        console.log('Created fallback ping element via global function');
       }
       fallbackPing.textContent = pingText;
     }

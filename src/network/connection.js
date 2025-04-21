@@ -288,7 +288,11 @@ export class Connection {
     });
 
     this.peer.on('data', data => {
-      console.log('Received data from peer', data);
+      // Only log non-ping/pong messages or if they're the first ones
+      if (!data.includes('"type":"ping"') && !data.includes('"type":"pong"')) {
+        console.log('Received data from peer', data);
+      }
+
       if (this.onMessage) {
         try {
           const message = JSON.parse(data);
@@ -303,11 +307,10 @@ export class Connection {
                 pingTimestamp: message.data.timestamp,
               },
             });
-            console.log(`${this.isHost ? 'Host' : 'Guest'} responded with pong message`);
+            // Don't log every ping/pong message
           } else if (message.type === 'pong') {
             // Calculate round-trip time for both host and guest
             const rtt = Date.now() - message.data.pingTimestamp;
-            console.log(`Round-trip time: ${rtt}ms`);
 
             // Use the global ping update function
             if (window.updatePing) {
@@ -430,7 +433,7 @@ export class Connection {
             timestamp: Date.now(),
           },
         });
-        console.log(`${this.isHost ? 'Host' : 'Guest'} sent ping message`);
+        // Don't log every ping message
       } else {
         // Clear the interval if we're no longer connected
         this._clearPingInterval();
