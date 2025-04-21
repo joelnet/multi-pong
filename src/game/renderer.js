@@ -59,6 +59,9 @@ export class GameRenderer {
   render(gameState) {
     this.clear();
 
+    // Apply screen shake if active
+    // (Applying transform before drawing)
+
     // Draw the game field
     this.drawField();
 
@@ -92,12 +95,12 @@ export class GameRenderer {
     const ctx = this.ctx;
 
     // Draw the center line
-    ctx.strokeStyle = 'rgba(0, 243, 255, 0.3)';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([15, 15]);
+    ctx.strokeStyle = 'rgba(0, 243, 255, 0.5)'; // Slightly more opaque
+    ctx.lineWidth = 4;
+    ctx.setLineDash([10, 10]);
     ctx.beginPath();
-    ctx.moveTo(0, this.canvas.height / 2);
-    ctx.lineTo(this.canvas.width, this.canvas.height / 2);
+    ctx.moveTo(this.canvas.width / 2, 0);
+    ctx.lineTo(this.canvas.width / 2, this.canvas.height);
     ctx.stroke();
     ctx.setLineDash([]);
 
@@ -121,22 +124,14 @@ export class GameRenderer {
   drawPaddle(paddle, isLocal) {
     const ctx = this.ctx;
 
-    // Calculate paddle position and size based on perspective
-    let paddleWidth = paddle.width * this.scaleX;
-    let paddleHeight = paddle.height * this.scaleY;
-
-    // Apply perspective scaling for remote paddle
-    if (!isLocal) {
-      const perspectiveFactor = 0.5; // Remote paddle appears smaller
-      paddleWidth *= perspectiveFactor;
-      paddleHeight *= perspectiveFactor;
-    }
-
-    const x = paddle.x * this.scaleX - paddleWidth / 2;
-    const y = paddle.y * this.scaleY - paddleHeight / 2;
+    // Calculate screen coordinates (no perspective scaling)
+    const paddleWidth = paddle.width * this.scaleX;
+    const paddleHeight = paddle.height * this.scaleY;
+    const x = paddle.x * this.scaleX - paddleWidth / 2; // Center paddle horizontally
+    const y = paddle.y * this.scaleY - paddleHeight / 2; // Center paddle vertically
 
     // Draw paddle with glow effect
-    ctx.fillStyle = isLocal ? '#00f3ff' : '#ff00e6';
+    ctx.fillStyle = isLocal ? '#00f3ff' : '#ff00e6'; // Local=cyan, Remote=magenta
     ctx.shadowColor = isLocal ? '#00f3ff' : '#ff00e6';
     ctx.shadowBlur = 15;
     ctx.fillRect(x, y, paddleWidth, paddleHeight);
@@ -160,8 +155,7 @@ export class GameRenderer {
     this.ballTrail.unshift({
       x: ball.x * this.scaleX,
       y: ball.y * this.scaleY,
-      z: ball.z,
-      radius: ball.radius * this.scaleX * (1 - ball.z / settings.fieldDepth),
+      opacity: 1.0, // Initial opacity
     });
 
     // Limit trail length
@@ -178,12 +172,14 @@ export class GameRenderer {
     const ctx = this.ctx;
 
     for (let i = 0; i < this.ballTrail.length; i++) {
-      const trailPoint = this.ballTrail[i];
-      const opacity = 1 - i / this.maxTrailLength;
+      const pos = this.ballTrail[i];
 
-      ctx.fillStyle = `rgba(0, 243, 255, ${opacity * 0.5})`;
+      // Calculate size and opacity based on trail position
+      const opacity = (this.maxTrailLength - i) / this.maxTrailLength;
+
+      ctx.fillStyle = `rgba(0, 243, 255, ${opacity * pos.opacity * 0.6})`; // Trail color
       ctx.beginPath();
-      ctx.arc(trailPoint.x, trailPoint.y, trailPoint.radius * 0.8, 0, Math.PI * 2);
+      ctx.arc(pos.x, pos.y, 5 * this.scaleX * opacity, 0, Math.PI * 2); // Size decreases along trail
       ctx.fill();
     }
   }
@@ -196,26 +192,24 @@ export class GameRenderer {
   drawBall(ball) {
     const ctx = this.ctx;
 
-    // Calculate ball position and size based on perspective
-    const depthFactor = 1 - ball.z / settings.fieldDepth;
-    const ballSize = ball.radius * 2 * this.scaleX * depthFactor;
-
+    // Calculate screen coordinates
     const x = ball.x * this.scaleX;
     const y = ball.y * this.scaleY;
+    const radius = ball.radius * this.scaleX; // Use scaleX for consistent radius scaling
 
     // Draw ball with glow effect
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = '#fff'; // White ball
     ctx.shadowColor = '#00f3ff';
     ctx.shadowBlur = 15;
     ctx.beginPath();
-    ctx.arc(x, y, ballSize / 2, 0, Math.PI * 2);
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
     ctx.fill();
 
     // Add inner highlight
     ctx.fillStyle = '#00f3ff';
     ctx.shadowBlur = 0;
     ctx.beginPath();
-    ctx.arc(x, y, ballSize / 4, 0, Math.PI * 2);
+    ctx.arc(x, y, radius / 2, 0, Math.PI * 2);
     ctx.fill();
 
     // Reset shadow
@@ -228,33 +222,35 @@ export class GameRenderer {
    * @private
    */
   drawDebugInfo(gameState) {
-    const ctx = this.ctx;
-    const ball = gameState.ball;
+    if (this.showDebugInfo) {
+      const ctx = this.ctx;
+      const ball = gameState.ball;
 
-    // Draw ball velocity vector
-    const velocityScale = 10;
-    const startX = ball.x * this.scaleX;
-    const startY = ball.y * this.scaleY;
-    const endX = startX + ball.velocityX * velocityScale;
-    const endY = startY + ball.velocityY * velocityScale;
+      // Draw ball velocity vector (2D)
+      const velocityScale = 5;
+      const startX = ball.x * this.scaleX;
+      const startY = ball.y * this.scaleY;
+      const endX = startX + ball.velocityX * velocityScale;
+      const endY = startY + ball.velocityY * velocityScale;
 
-    ctx.strokeStyle = '#ff0000';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(startX, startY);
-    ctx.lineTo(endX, endY);
-    ctx.stroke();
+      ctx.strokeStyle = '#ff0000'; // Red velocity vector
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(endX, endY);
+      ctx.stroke();
 
-    // Draw ball z-position indicator
-    const zText = `Z: ${ball.z.toFixed(1)}`;
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '12px Arial';
-    ctx.fillText(zText, startX + 15, startY - 15);
+      // Draw ball speed (2D)
+      const speed = Math.sqrt(ball.velocityX ** 2 + ball.velocityY ** 2);
+      const speedText = `Speed: ${speed.toFixed(1)}`;
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '10px Arial';
+      ctx.fillText(speedText, startX + ball.radius * this.scaleX + 5, startY);
 
-    // Draw ball speed
-    const speed = Math.sqrt(ball.velocityX ** 2 + ball.velocityY ** 2 + ball.velocityZ ** 2);
-    const speedText = `Speed: ${speed.toFixed(1)}`;
-    ctx.fillText(speedText, startX + 15, startY);
+      // Draw ball position
+      const posText = `Pos: ${ball.x.toFixed(0)}, ${ball.y.toFixed(0)}`;
+      ctx.fillText(posText, startX + ball.radius * this.scaleX + 5, startY + 12);
+    }
   }
 
   /**
@@ -345,9 +341,11 @@ export class GameRenderer {
 
     const shake = () => {
       const elapsed = performance.now() - startTime;
-      const progress = elapsed / duration;
+
+      const progress = Math.min(1, elapsed / duration); // Ensure progress doesn't exceed 1
 
       if (progress < 1) {
+        // Check if shake duration is still active
         const currentIntensity = intensity * (1 - progress);
         const dx = (Math.random() * 2 - 1) * currentIntensity;
         const dy = (Math.random() * 2 - 1) * currentIntensity;
@@ -357,6 +355,10 @@ export class GameRenderer {
         requestAnimationFrame(shake);
       } else {
         this.canvas.style.transform = originalTransform;
+        // Ensure transform is cleared even if original was empty
+        if (!originalTransform) {
+          this.canvas.style.transform = '';
+        }
       }
     };
 

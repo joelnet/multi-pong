@@ -5,7 +5,6 @@ import settings from '../settings.json';
  * @typedef {import('../types/index.js').Paddle} Paddle
  * @typedef {import('../types/index.js').Player} Player
  * @typedef {import('../types/index.js').GameState} GameState
- * @typedef {import('../types/index.js').SwipeData} SwipeData
  */
 
 /**
@@ -41,20 +40,17 @@ export class GameEngine {
       ball: {
         x: settings.fieldWidth / 2,
         y: settings.fieldHeight / 2,
-        z: settings.fieldDepth / 2,
         radius: settings.ballRadius,
         velocityX: 0,
         velocityY: 0,
-        velocityZ: 0,
         speed: settings.initialBallSpeed,
       },
       localPlayer: {
         paddle: {
           x: settings.fieldWidth / 2,
-          y: settings.fieldHeight - 50,
+          y: settings.fieldHeight - settings.paddleHeight * 2, // Position near bottom
           width: settings.paddleWidth,
           height: settings.paddleHeight,
-          depth: 0,
         },
         score: 0,
         isHost: this.isHost,
@@ -62,10 +58,9 @@ export class GameEngine {
       remotePlayer: {
         paddle: {
           x: settings.fieldWidth / 2,
-          y: 50,
+          y: settings.paddleHeight * 2, // Position near top
           width: settings.paddleWidth,
           height: settings.paddleHeight,
-          depth: settings.fieldDepth,
         },
         score: 0,
         isHost: !this.isHost,
@@ -87,8 +82,11 @@ export class GameEngine {
    * Start the game
    */
   startGame() {
+    // FORCE the game state to playing
     this.gameState.isPlaying = true;
     this.gameState.isPaused = false;
+
+    console.log('Game started, isPlaying set to:', this.gameState.isPlaying);
 
     // If host, initialize ball movement
     if (this.isHost) {
@@ -108,13 +106,17 @@ export class GameEngine {
     // Reset ball position
     ball.x = settings.fieldWidth / 2;
     ball.y = settings.fieldHeight / 2;
-    ball.z = settings.fieldDepth / 2;
 
-    // Set initial velocity (random angle within bounds)
-    const angle = (Math.random() * Math.PI) / 2 - Math.PI / 4; // -45 to 45 degrees
-    ball.velocityX = Math.sin(angle) * ball.speed;
-    ball.velocityY = 0;
-    ball.velocityZ = this.isHost ? ball.speed : -ball.speed; // Direction depends on who serves
+    // Give a random initial X direction, always start towards guest (positive Y for host)
+    const initialAngle = ((Math.random() > 0.5 ? 1 : -1) * Math.PI) / 4; // 45 degrees
+    ball.velocityX = settings.initialBallSpeed * Math.cos(initialAngle);
+    ball.velocityY = settings.initialBallSpeed * Math.sin(initialAngle);
+
+    // Host serves towards guest (positive Y)
+    ball.velocityY = Math.abs(ball.velocityY);
+
+    // Ensure speed property is set correctly
+    ball.speed = settings.initialBallSpeed;
   }
 
   /**
@@ -127,10 +129,25 @@ export class GameEngine {
       return false;
     }
 
-    const deltaTime = (timestamp - this.lastUpdateTime) / 1000; // Convert to seconds
+    // BUGFIX: Ensure we have a valid lastUpdateTime
+    if (!this.lastUpdateTime) {
+      this.lastUpdateTime = timestamp - 16; // Assume ~60fps (16ms frame time)
+    }
+
+    // Calculate deltaTime and ensure it's not too large or zero
+    let deltaTime = (timestamp - this.lastUpdateTime) / 1000; // Convert to seconds
+    // If deltaTime is zero or negative, force a reasonable value
+    if (deltaTime <= 0) {
+      deltaTime = 0.016; // Force 16ms if deltaTime is invalid
+    }
+    // Cap deltaTime to prevent huge jumps
+    if (deltaTime > 0.1) {
+      deltaTime = 0.1;
+    }
+
     this.lastUpdateTime = timestamp;
 
-    // Update ball position
+    // Update ball position locally without sending network updates
     this.updateBall(deltaTime);
 
     // Check for collisions
@@ -147,12 +164,11 @@ export class GameEngine {
   updateBall(deltaTime) {
     const ball = this.gameState.ball;
 
-    // Update position based on velocity
+    // Update ball position
     ball.x += ball.velocityX * deltaTime;
     ball.y += ball.velocityY * deltaTime;
-    ball.z += ball.velocityZ * deltaTime;
 
-    // Bounce off side walls
+    // Bounce off left/right walls
     if (ball.x - ball.radius < 0 || ball.x + ball.radius > settings.fieldWidth) {
       ball.velocityX = -ball.velocityX;
 
@@ -164,7 +180,7 @@ export class GameEngine {
       }
     }
 
-    // Bounce off top/bottom walls (if enabled)
+    // Bounce off top/bottom walls
     if (ball.y - ball.radius < 0 || ball.y + ball.radius > settings.fieldHeight) {
       ball.velocityY = -ball.velocityY;
 
@@ -176,8 +192,10 @@ export class GameEngine {
       }
     }
 
-    // Check if ball is out of bounds (z-axis)
-    if (ball.z < 0 || ball.z > settings.fieldDepth) {
+    // Check if ball is out of bounds (top or bottom)
+    if (ball.y > settings.fieldHeight + ball.radius) {
+      this.handleBallOut();
+    } else if (ball.y < -ball.radius) {
       this.handleBallOut();
     }
   }
@@ -191,70 +209,73 @@ export class GameEngine {
     const localPaddle = this.gameState.localPlayer.paddle;
     const remotePaddle = this.gameState.remotePlayer.paddle;
 
-    // Check collision with local paddle
+    // Simplified 2D AABB collision detection
+    const collidesWithPaddle = paddle => {
+      const paddleLeft = paddle.x - paddle.width / 2;
+      const paddleRight = paddle.x + paddle.width / 2;
+      const paddleTop = paddle.y - paddle.height / 2;
+      const paddleBottom = paddle.y + paddle.height / 2;
+
+      const ballLeft = ball.x - ball.radius;
+      const ballRight = ball.x + ball.radius;
+      const ballTop = ball.y - ball.radius;
+      const ballBottom = ball.y + ball.radius;
+
+      return (
+        ballRight > paddleLeft &&
+        ballLeft < paddleRight &&
+        ballBottom > paddleTop &&
+        ballTop < paddleBottom
+      );
+    };
+
+    // Check collision with local paddle (at the bottom)
     if (
-      ball.z <= localPaddle.depth + ball.radius &&
-      ball.z >= localPaddle.depth &&
-      ball.velocityZ < 0 &&
-      ball.x >= localPaddle.x - localPaddle.width / 2 &&
-      ball.x <= localPaddle.x + localPaddle.width / 2 &&
-      ball.y >= localPaddle.y - localPaddle.height / 2 &&
-      ball.y <= localPaddle.y + localPaddle.height / 2
+      ball.velocityY > 0 &&
+      ball.y > settings.fieldHeight / 2 &&
+      collidesWithPaddle(localPaddle)
     ) {
-      this.handlePaddleCollision(localPaddle, true);
+      this.handlePaddleCollision(localPaddle);
     }
 
-    // Check collision with remote paddle
+    // Check collision with remote paddle (at the top)
     if (
-      ball.z >= remotePaddle.depth - ball.radius &&
-      ball.z <= remotePaddle.depth &&
-      ball.velocityZ > 0 &&
-      ball.x >= remotePaddle.x - remotePaddle.width / 2 &&
-      ball.x <= remotePaddle.x + remotePaddle.width / 2 &&
-      ball.y >= remotePaddle.y - remotePaddle.height / 2 &&
-      ball.y <= remotePaddle.y + remotePaddle.height / 2
+      ball.velocityY < 0 &&
+      ball.y < settings.fieldHeight / 2 &&
+      collidesWithPaddle(remotePaddle)
     ) {
-      this.handlePaddleCollision(remotePaddle, false);
+      this.handlePaddleCollision(remotePaddle);
     }
   }
 
   /**
    * Handle collision between ball and paddle
    * @param {Paddle} paddle - The paddle that was hit
-   * @param {boolean} isLocalPaddle - Whether the paddle belongs to the local player
    * @private
    */
-  handlePaddleCollision(paddle, isLocalPaddle) {
+  handlePaddleCollision(paddle) {
     const ball = this.gameState.ball;
 
-    // Reverse z-direction
-    ball.velocityZ = -ball.velocityZ;
+    // Reverse Y velocity
+    ball.velocityY = -ball.velocityY;
 
-    // Adjust x-velocity based on where the ball hit the paddle
-    const hitPosition = (ball.x - paddle.x) / (paddle.width / 2);
-    ball.velocityX = hitPosition * ball.speed;
+    // Adjust X velocity based on where it hit the paddle
+    // Map hit position from -1 (left edge) to 1 (right edge)
+    const hitX = (ball.x - paddle.x) / (paddle.width / 2);
+    const influenceX = 0.75; // How much the paddle edge affects angle
+    ball.velocityX += hitX * influenceX * ball.speed; // Adjust angle
 
-    // Increase ball speed
+    // Prevent ball from getting stuck by moving it slightly away from paddle
+    const overlap = ball.radius + paddle.height / 2 - Math.abs(ball.y - paddle.y);
+    if (overlap > 0) {
+      ball.y += ball.velocityY > 0 ? overlap : -overlap;
+    }
+
+    // Increase ball speed slightly after each hit
     ball.speed = Math.min(
       ball.speed + this.gameState.settings.ballSpeedIncrement,
       this.gameState.settings.maxBallSpeed
     );
-
-    // Normalize the velocity vector to maintain consistent speed
-    const magnitude = Math.sqrt(
-      ball.velocityX * ball.velocityX +
-        ball.velocityY * ball.velocityY +
-        ball.velocityZ * ball.velocityZ
-    );
-
-    ball.velocityX = (ball.velocityX / magnitude) * ball.speed;
-    ball.velocityY = (ball.velocityY / magnitude) * ball.speed;
-    ball.velocityZ = (ball.velocityZ / magnitude) * ball.speed;
-
-    // If this is the local paddle, we need to notify the other player
-    if (isLocalPaddle && this.onBallOut) {
-      this.onBallOut(ball);
-    }
   }
 
   /**
@@ -264,12 +285,12 @@ export class GameEngine {
   handleBallOut() {
     const ball = this.gameState.ball;
 
-    // Update score based on which side the ball went out
-    if (ball.z < 0) {
-      // Ball went out on local player's side
+    // Update score based on which side the ball went out (top or bottom)
+    if (ball.y > settings.fieldHeight + ball.radius) {
+      // Ball went out on local player's side (bottom)
       this.gameState.remotePlayer.score += 1;
-    } else {
-      // Ball went out on remote player's side
+    } else if (ball.y < -ball.radius) {
+      // Ball went out on remote player's side (top)
       this.gameState.localPlayer.score += 1;
     }
 
@@ -290,56 +311,26 @@ export class GameEngine {
       }
     } else {
       // Reset ball for next round
-      this.initBallMovement();
+      this.initBallMovement(); // Reset ball position and velocity
+      // Host decides who serves next based on score, maybe alternate?
+      // For now, always serve towards the guest
+      this.gameState.ball.velocityY = Math.abs(this.gameState.ball.velocityY);
     }
   }
 
   /**
    * Update paddle position
-   * @param {number} x - New x position
-   * @param {number} y - New y position
+   * @param {number} x - New x position (Y position is fixed)
    * @param {boolean} isLocalPaddle - Whether to update the local or remote paddle
    */
-  updatePaddlePosition(x, y, isLocalPaddle = true) {
+  updatePaddlePosition(x, isLocalPaddle = true) {
     const paddle = isLocalPaddle
       ? this.gameState.localPlayer.paddle
       : this.gameState.remotePlayer.paddle;
 
     paddle.x = Math.max(paddle.width / 2, Math.min(settings.fieldWidth - paddle.width / 2, x));
 
-    paddle.y = Math.max(paddle.height / 2, Math.min(settings.fieldHeight - paddle.height / 2, y));
-  }
-
-  /**
-   * Process a swipe to return the ball
-   * @param {SwipeData} swipeData - Data about the swipe
-   * @returns {boolean} Whether the swipe successfully returned the ball
-   */
-  processSwipe(swipeData) {
-    const ball = this.gameState.ball;
-
-    // Check if ball is in range to be hit
-    if (ball.z > settings.fieldDepth / 4 || ball.velocityZ > 0) {
-      return false;
-    }
-
-    // Calculate new velocity based on swipe
-    const speed = Math.min(
-      swipeData.speed / 10, // Scale down the swipe speed
-      this.gameState.settings.maxBallSpeed
-    );
-
-    ball.velocityX = Math.cos(swipeData.angle) * speed;
-    ball.velocityY = Math.sin(swipeData.angle) * speed;
-    ball.velocityZ = -ball.velocityZ; // Reverse direction
-
-    // Increase ball speed
-    ball.speed = Math.min(
-      ball.speed + this.gameState.settings.ballSpeedIncrement,
-      this.gameState.settings.maxBallSpeed
-    );
-
-    return true;
+    // Y position is fixed for 2D pong paddles
   }
 
   /**
@@ -382,7 +373,8 @@ export class GameEngine {
     }
 
     if (data.remotePaddle) {
-      this.gameState.remotePlayer.paddle = data.remotePaddle;
+      // Only update x position from remote for paddle
+      this.gameState.remotePlayer.paddle.x = data.remotePaddle.x;
     }
 
     if (data.score !== undefined) {

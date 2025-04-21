@@ -10,11 +10,9 @@
  * @typedef {Object} Ball
  * @property {number} x - X position of the ball
  * @property {number} y - Y position of the ball
- * @property {number} z - Z position of the ball (depth)
  * @property {number} radius - Radius of the ball
  * @property {number} velocityX - X velocity component
  * @property {number} velocityY - Y velocity component
- * @property {number} velocityZ - Z velocity component (toward/away from player)
  * @property {number} speed - Current speed of the ball
  */
 
@@ -24,7 +22,6 @@
  * @property {number} y - Y position of the paddle
  * @property {number} width - Width of the paddle
  * @property {number} height - Height of the paddle
- * @property {number} depth - Depth position of the paddle (fixed)
  */
 
 /**
@@ -42,17 +39,6 @@
  * @property {boolean} isPlaying - Whether the game is currently in progress
  * @property {boolean} isPaused - Whether the game is paused
  * @property {GameSettings} settings - Game settings
- */
-
-/**
- * @typedef {Object} SwipeData
- * @property {number} startX - Starting X position of the swipe
- * @property {number} startY - Starting Y position of the swipe
- * @property {number} endX - Ending X position of the swipe
- * @property {number} endY - Ending Y position of the swipe
- * @property {number} duration - Duration of the swipe in milliseconds
- * @property {number} speed - Speed of the swipe
- * @property {number} angle - Angle of the swipe in radians
  */
 
 /**

@@ -38,9 +38,6 @@ let gameEngine = null;
 let gameRenderer = null;
 let isHost = false;
 let animationFrameId = null;
-let touchStartX = 0;
-let touchStartY = 0;
-let touchStartTime = 0;
 
 /**
  * Initialize the application
@@ -549,7 +546,7 @@ function startGame() {
   gameEngine = new GameEngine({
     isHost,
     onScoreUpdate: updateScore,
-    onBallOut: sendBallData,
+    // onBallOut: sendBallData, // Removed: Ball data is sent explicitly only once below
     onGameOver: handleGameOver,
   });
 
@@ -558,12 +555,16 @@ function startGame() {
   // Start game engine
   gameEngine.startGame();
 
-  // Send start message to other player
+  // Send initial ball data to other player
   if (connection) {
-    connection.sendMessage({
-      type: 'start',
-      data: null,
-    });
+    // For host: initialize the ball and send its initial state
+    if (isHost) {
+      // Explicitly send initial ball state to guest
+      // This is the ONLY time ball data should be sent
+      sendBallData(gameEngine.getGameState().ball, false);
+    } else {
+      // For guest: do nothing
+    }
   }
 
   // Start game loop
@@ -592,9 +593,6 @@ function gameLoop(timestamp) {
   // Render game
   gameRenderer.render(gameEngine.getGameState());
 
-  // Send paddle position to other player
-  sendPaddlePosition();
-
   // Continue loop
   animationFrameId = requestAnimationFrame(gameLoop);
 }
@@ -612,8 +610,10 @@ function updateScore(localScore, remoteScore) {
 /**
  * Send ball data to other player
  * @param {import('./types/index.js').Ball} ball - Ball data
+ * @param {boolean} [isReturn=false] - Whether this is a ball return (for effects)
  */
-function sendBallData(ball) {
+function sendBallData(ball, isReturn = false) {
+  console.log('!!!!!!!!!!!!!!Sending ball data:', ball);
   if (!connection) return;
 
   connection.sendMessage({
@@ -621,26 +621,11 @@ function sendBallData(ball) {
     data: ball,
   });
 
-  // Create particle effect
-  if (gameRenderer) {
+  // Only create particle effects and screen shake when the ball is returned
+  if (isReturn && gameRenderer) {
     gameRenderer.createParticleEffect(ball.x, ball.y);
     gameRenderer.screenShake();
   }
-}
-
-/**
- * Send paddle position to other player
- */
-function sendPaddlePosition() {
-  if (!connection || !gameEngine) return;
-
-  const gameState = gameEngine.getGameState();
-  const paddle = gameState.localPlayer.paddle;
-
-  connection.sendMessage({
-    type: 'paddle',
-    data: paddle,
-  });
 }
 
 /**
@@ -676,11 +661,14 @@ function handleGameOver(localWon) {
  * @param {Event} event - Touch or mouse event
  */
 function handleTouchStart(event) {
-  // Get touch coordinates
-  const touch = event.touches ? event.touches[0] : event;
-  touchStartX = touch.clientX;
-  touchStartY = touch.clientY;
-  touchStartTime = performance.now();
+  if (!gameEngine || !gameEngine.gameState.isPlaying || gameEngine.gameState.isPaused) {
+    return;
+  }
+
+  event.preventDefault();
+
+  handleTouchMove(event); // Pass the event to immediately update position
+  console.log('Touch start');
 }
 
 /**
@@ -688,21 +676,31 @@ function handleTouchStart(event) {
  * @param {Event} event - Touch or mouse event
  */
 function handleTouchMove(event) {
-  if (!gameEngine) return;
+  if (!gameEngine || !gameEngine.gameState.isPlaying || gameEngine.gameState.isPaused) {
+    return;
+  }
 
-  // Get touch coordinates
+  event.preventDefault();
+
   const touch = event.touches ? event.touches[0] : event;
-  const x = touch.clientX;
-  const y = touch.clientY;
+  const currentX = touch.clientX;
 
-  // Update paddle position
-  const canvas = gameRenderer.canvas;
+  // Map screen coordinates to game coordinates
+  const rect = gameCanvas.getBoundingClientRect();
+  const scaleX = settings.fieldWidth / rect.width;
 
-  // Convert screen coordinates to game coordinates
-  const gameX = (x / canvas.width) * settings.fieldWidth;
-  const gameY = (y / canvas.height) * settings.fieldHeight;
+  const gameX = (currentX - rect.left) * scaleX;
 
-  gameEngine.updatePaddlePosition(gameX, gameY);
+  // Update local paddle position
+  gameEngine.updatePaddlePosition(gameX, true);
+
+  // Send paddle position to remote player
+  if (connection) {
+    connection.sendMessage({
+      type: 'paddle',
+      data: gameEngine.getGameState().localPaddle,
+    });
+  }
 }
 
 /**
@@ -710,48 +708,14 @@ function handleTouchMove(event) {
  * @param {Event} event - Touch or mouse event
  */
 function handleTouchEnd(event) {
-  if (!gameEngine) return;
-
-  // Get touch coordinates
-  const touch = event.changedTouches ? event.changedTouches[0] : event;
-  const touchEndX = touch.clientX;
-  const touchEndY = touch.clientY;
-  const touchEndTime = performance.now();
-
-  // Calculate swipe data
-  const deltaX = touchEndX - touchStartX;
-  const deltaY = touchEndY - touchStartY;
-  const duration = touchEndTime - touchStartTime;
-
-  // Only process if it's a significant swipe
-  if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
-    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-    const speed = (distance / duration) * 1000; // pixels per second
-    const angle = Math.atan2(deltaY, deltaX);
-
-    /** @type {SwipeData} */
-    const swipeData = {
-      startX: touchStartX,
-      startY: touchStartY,
-      endX: touchEndX,
-      endY: touchEndY,
-      duration,
-      speed,
-      angle,
-    };
-
-    // Process swipe to return the ball
-    if (gameEngine.processSwipe(swipeData)) {
-      // Create particle effect for successful swipe
-      if (gameRenderer) {
-        gameRenderer.createParticleEffect(
-          (touchEndX / gameRenderer.canvas.width) * settings.fieldWidth,
-          (touchEndY / gameRenderer.canvas.height) * settings.fieldHeight,
-          '#ff00e6'
-        );
-      }
-    }
+  if (!gameEngine || !gameEngine.gameState.isPlaying || gameEngine.gameState.isPaused) {
+    return;
   }
+
+  event.preventDefault();
+
+  // No action needed on touch end for simple paddle movement
+  console.log('Touch end');
 }
 
 /**
