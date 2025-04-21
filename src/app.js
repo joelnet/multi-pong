@@ -590,6 +590,13 @@ function gameLoop(timestamp) {
   // Update game state
   gameEngine.update(timestamp);
 
+  // If host, send the latest ball state to the guest
+  if (isHost && connection) {
+    const gameState = gameEngine.getGameState();
+    // Note: Ignoring isReturn flag for now to focus on basic animation
+    sendBallData(gameState.ball, false);
+  }
+
   // Render game
   gameRenderer.render(gameEngine.getGameState());
 
@@ -613,7 +620,6 @@ function updateScore(localScore, remoteScore) {
  * @param {boolean} [isReturn=false] - Whether this is a ball return (for effects)
  */
 function sendBallData(ball, isReturn = false) {
-  console.log('!!!!!!!!!!!!!!Sending ball data:', ball);
   if (!connection) return;
 
   connection.sendMessage({
