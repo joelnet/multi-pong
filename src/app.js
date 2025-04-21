@@ -407,7 +407,13 @@ function handleMessage(message) {
         // Host ignores ball messages (it's the source of truth)
         break;
       case 'paddle':
-        gameEngine.updateFromRemote({ remotePaddle: message.data });
+        // Guest receives paddle data from host
+        // Host receives paddle data from guest
+        if (message.data && typeof message.data.x === 'number') {
+          gameEngine.updateFromRemote({ remotePaddle: message.data });
+        } else {
+          console.warn('Received invalid paddle data:', message.data);
+        }
         break;
       case 'score':
         gameEngine.updateFromRemote({ score: message.data });
@@ -716,11 +722,12 @@ function handleTouchMove(event) {
   // Update local paddle position
   gameEngine.updatePaddlePosition(gameX, true);
 
-  // Send paddle position to remote player
+  // Send local paddle position to remote player
   if (connection) {
+    const localPaddle = gameEngine.getGameState().localPlayer.paddle;
     connection.sendMessage({
       type: 'paddle',
-      data: gameEngine.getGameState().localPaddle,
+      data: { x: localPaddle.x }, // Send only the x coordinate
     });
   }
 }

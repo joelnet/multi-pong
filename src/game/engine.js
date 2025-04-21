@@ -372,7 +372,7 @@ export class GameEngine {
       this.gameState.ball = data.ball;
     }
 
-    if (data.remotePaddle) {
+    if (data.remotePaddle && typeof data.remotePaddle.x === 'number') {
       // Only update x position from remote for paddle
       this.gameState.remotePlayer.paddle.x = data.remotePaddle.x;
     }
