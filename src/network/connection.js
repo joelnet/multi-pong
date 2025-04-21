@@ -1,4 +1,4 @@
-import { Peer } from '../lib/peer.js';
+import { Peer } from './peer.js';
 import { generateQRCode } from '../lib/qrcode.js';
 
 /**
