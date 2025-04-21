@@ -767,27 +767,20 @@ function handleResize() {
  */
 function copyToClipboard(element) {
   if (navigator.clipboard && element.value) {
-    navigator.clipboard
-      .writeText(element.value)
-      .then(() => {
-        alert('Copied to clipboard!');
-      })
-      .catch(err => {
-        console.error('Could not copy text: ', err);
-        element.select();
-        try {
-          document.execCommand('copy');
-          alert('Copied to clipboard!');
-        } catch (e) {
-          console.error('Fallback clipboard copy failed: ', e);
-          alert('Failed to copy to clipboard. Please copy the text manually.');
-        }
-      });
+    navigator.clipboard.writeText(element.value).catch(err => {
+      console.error('Could not copy text: ', err);
+      element.select();
+      try {
+        document.execCommand('copy');
+      } catch (e) {
+        console.error('Fallback clipboard copy failed: ', e);
+        alert('Failed to copy to clipboard. Please copy the text manually.');
+      }
+    });
   } else {
     element.select();
     try {
       document.execCommand('copy');
-      alert('Copied to clipboard!');
     } catch (e) {
       console.error('Clipboard copy failed: ', e);
       alert('Failed to copy to clipboard. Please copy the text manually.');
