@@ -82,15 +82,14 @@ export class GameEngine {
    * Start the game
    */
   startGame() {
-    // FORCE the game state to playing
     this.gameState.isPlaying = true;
     this.gameState.isPaused = false;
 
     console.log('Game started, isPlaying set to:', this.gameState.isPlaying);
 
-    // If host, initialize ball movement
+    // If host, initialize ball movement, serving towards remote player initially
     if (this.isHost) {
-      this.initBallMovement();
+      this.initBallMovement(false); // Serve towards remote player (top)
     }
 
     this.lastUpdateTime = performance.now();
@@ -98,22 +97,44 @@ export class GameEngine {
 
   /**
    * Initialize ball movement (host only)
+   * @param {boolean} [serveTowardsLocal=false] - If true, serve towards the local player (bottom), otherwise serve towards remote (top).
    * @private
    */
-  initBallMovement() {
+  initBallMovement(serveTowardsLocal = false) {
     const ball = this.gameState.ball;
 
     // Reset ball position
     ball.x = settings.fieldWidth / 2;
     ball.y = settings.fieldHeight / 2;
 
-    // Give a random initial X direction, always start towards guest (positive Y for host)
-    const initialAngle = ((Math.random() > 0.5 ? 1 : -1) * Math.PI) / 4; // 45 degrees
+    // Give a random initial X direction
+    // Use a slightly less steep angle than 45deg
+    const angleRange = Math.PI / 6; // +/- 30 degrees from horizontal
+    const initialAngle = Math.random() * angleRange * 2 - angleRange; // Random angle between -30 and +30 deg
+
     ball.velocityX = settings.initialBallSpeed * Math.cos(initialAngle);
     ball.velocityY = settings.initialBallSpeed * Math.sin(initialAngle);
 
-    // Host serves towards guest (positive Y)
-    ball.velocityY = Math.abs(ball.velocityY);
+    // Ensure the Y velocity has a minimum magnitude to prevent very horizontal serves
+    const minYVelocityFraction = 0.2; // Minimum 20% of speed goes to Y velocity
+    if (Math.abs(ball.velocityY) < settings.initialBallSpeed * minYVelocityFraction) {
+      const signY =
+        ball.velocityY === 0 ? (Math.random() < 0.5 ? -1 : 1) : Math.sign(ball.velocityY);
+      ball.velocityY = signY * settings.initialBallSpeed * minYVelocityFraction;
+      // Recalculate X velocity to maintain speed
+      const signX =
+        ball.velocityX === 0 ? (Math.random() < 0.5 ? -1 : 1) : Math.sign(ball.velocityX);
+      ball.velocityX =
+        signX *
+        Math.sqrt(
+          settings.initialBallSpeed * settings.initialBallSpeed - ball.velocityY * ball.velocityY
+        );
+    }
+
+    // Host is local (bottom, positive Y), Remote is guest (top, negative Y)
+    // If serveTowardsLocal is true, Y velocity should be positive.
+    // If serveTowardsLocal is false, Y velocity should be negative.
+    ball.velocityY = serveTowardsLocal ? Math.abs(ball.velocityY) : -Math.abs(ball.velocityY);
 
     // Ensure speed property is set correctly
     ball.speed = settings.initialBallSpeed;
@@ -164,39 +185,32 @@ export class GameEngine {
   updateBall(deltaTime) {
     const ball = this.gameState.ball;
 
-    // Update ball position
+    // Update position based on velocity
     ball.x += ball.velocityX * deltaTime;
     ball.y += ball.velocityY * deltaTime;
 
-    // Bounce off left/right walls
+    // Collision with left/right walls
     if (ball.x - ball.radius < 0 || ball.x + ball.radius > settings.fieldWidth) {
       ball.velocityX = -ball.velocityX;
-
-      // Adjust position to prevent getting stuck in the wall
-      if (ball.x - ball.radius < 0) {
-        ball.x = ball.radius;
-      } else {
-        ball.x = settings.fieldWidth - ball.radius;
-      }
+      // Clamp position to prevent sticking
+      ball.x = Math.max(ball.radius, Math.min(settings.fieldWidth - ball.radius, ball.x));
     }
 
-    // Bounce off top/bottom walls
-    if (ball.y - ball.radius < 0 || ball.y + ball.radius > settings.fieldHeight) {
-      ball.velocityY = -ball.velocityY;
-
-      // Adjust position to prevent getting stuck in the wall
-      if (ball.y - ball.radius < 0) {
-        ball.y = ball.radius;
-      } else {
-        ball.y = settings.fieldHeight - ball.radius;
+    // Check if ball went out of bounds (top/bottom)
+    // Let handleBallOut manage scoring and reset.
+    if (ball.y > settings.fieldHeight + ball.radius || ball.y < -ball.radius) {
+      // Only the host should process scoring and reset logic
+      if (this.isHost) {
+        this.handleBallOut();
       }
+      // Non-host clients will receive the updated state from the host.
+      // No immediate action needed here for the non-host.
     }
 
-    // Check if ball is out of bounds (top or bottom)
-    if (ball.y > settings.fieldHeight + ball.radius) {
-      this.handleBallOut();
-    } else if (ball.y < -ball.radius) {
-      this.handleBallOut();
+    // Collision with paddles (handled in checkCollisions)
+    // Only the host should check for collisions
+    if (this.isHost) {
+      this.checkCollisions();
     }
   }
 
@@ -284,14 +298,21 @@ export class GameEngine {
    */
   handleBallOut() {
     const ball = this.gameState.ball;
+    let pointWinner; // 'local' or 'remote'
 
     // Update score based on which side the ball went out (top or bottom)
     if (ball.y > settings.fieldHeight + ball.radius) {
-      // Ball went out on local player's side (bottom)
+      // Ball went out on local player's side (bottom) -> remote player scores
       this.gameState.remotePlayer.score += 1;
+      pointWinner = 'remote';
     } else if (ball.y < -ball.radius) {
-      // Ball went out on remote player's side (top)
+      // Ball went out on remote player's side (top) -> local player scores
       this.gameState.localPlayer.score += 1;
+      pointWinner = 'local';
+    } else {
+      // Should not happen if called correctly from updateBall
+      console.warn('handleBallOut called unexpectedly - ball not out of bounds?');
+      return;
     }
 
     // Notify score update
@@ -305,16 +326,17 @@ export class GameEngine {
       this.gameState.remotePlayer.score >= this.gameState.settings.winScore
     ) {
       this.gameState.isPlaying = false;
+      // Stop the ball visually until game restarts
+      ball.velocityX = 0;
+      ball.velocityY = 0;
 
       if (this.onGameOver) {
         this.onGameOver(this.gameState.localPlayer.score > this.gameState.remotePlayer.score);
       }
     } else {
-      // Reset ball for next round
-      this.initBallMovement(); // Reset ball position and velocity
-      // Host decides who serves next based on score, maybe alternate?
-      // For now, always serve towards the guest
-      this.gameState.ball.velocityY = Math.abs(this.gameState.ball.velocityY);
+      // Reset ball for next round, serving towards the player who LOST the point
+      const serveTowardsLocal = pointWinner === 'remote'; // If remote won point, serve towards local
+      this.initBallMovement(serveTowardsLocal);
     }
   }
 
