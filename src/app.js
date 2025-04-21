@@ -24,7 +24,6 @@ const hostAnswerInput = document.getElementById('host-answer-input');
 const guestAnswerOutput = document.getElementById('guest-answer-output');
 const answerData = document.getElementById('answer-data');
 const answerInput = document.getElementById('answer-input');
-const copyAnswerBtn = document.getElementById('copy-answer-btn');
 const submitAnswerBtn = document.getElementById('submit-answer-btn');
 const guestConnectionStatus = document.getElementById('guest-connection-status');
 const connectionSuccess = document.getElementById('connection-success');
@@ -51,9 +50,12 @@ function init() {
   hostBtn.addEventListener('click', initHost);
   guestBtn.addEventListener('click', initGuest);
   submitOfferBtn.addEventListener('click', submitOffer);
-  copyAnswerBtn.addEventListener('click', () => copyToClipboard(answerData));
   submitAnswerBtn.addEventListener('click', submitAnswer);
   startGameBtn.addEventListener('click', startGame);
+
+  // Add paste event listeners for auto-submit
+  offerInput.addEventListener('paste', handlePaste);
+  answerInput.addEventListener('paste', handlePaste);
 
   // Add event listener for the host done button
   const hostDoneBtn = document.getElementById('host-done-btn');
@@ -827,6 +829,38 @@ function submitAnswer() {
 
     alert('Error processing answer. Please try again.');
   }
+}
+
+/**
+ * Handle paste event
+ * @param {Event} event - Paste event
+ */
+function handlePaste(event) {
+  // Get the pasted text
+  const pastedText = event.clipboardData.getData('text/plain');
+
+  // Set the input field value with the pasted text (allow default paste behavior)
+  setTimeout(() => {
+    // Check if the pasted text is valid JSON
+    try {
+      const parsedJson = JSON.parse(pastedText);
+
+      // Only auto-submit if it's an object with expected properties
+      if (typeof parsedJson === 'object' && parsedJson !== null) {
+        // For offer data, check if it has type: 'offer' and sdp
+        if (event.target === offerInput && parsedJson.type === 'offer' && parsedJson.sdp) {
+          submitOfferBtn.click();
+        }
+        // For answer data, check if it has type: 'answer' and sdp
+        else if (event.target === answerInput && parsedJson.type === 'answer' && parsedJson.sdp) {
+          submitAnswerBtn.click();
+        }
+      }
+    } catch (e) {
+      // Not valid JSON, do nothing and let user submit manually
+      console.log('Pasted content is not valid JSON');
+    }
+  }, 0);
 }
 
 // Add a global function to update ping display that can be called from anywhere
