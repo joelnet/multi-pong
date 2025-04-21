@@ -1,8 +1,7 @@
-import { Html5QrcodeScanner } from 'html5-qrcode';
-import * as ZXing from 'html5-qrcode/third_party/zxing-js.umd';
+import { Connection } from './network/connection.js';
 import { GameEngine } from './game/engine.js';
 import { GameRenderer } from './game/renderer.js';
-import { Connection } from './network/connection.js';
+import { generateQRCode, initQRScanner as createQRScanner, clearQRScanner } from './lib/qrcode.js';
 import settings from './settings.json';
 
 /**
@@ -149,7 +148,7 @@ async function initHost() {
     offerData.value = offer;
 
     // Generate QR code
-    await Connection.generateQRCode(offer, qrHost);
+    await generateQRCode(offer, qrHost);
   } catch (error) {
     console.error('Error initializing as host:', error);
     resetConnection();
@@ -173,20 +172,6 @@ function showHostWaitingScreen() {
  * Initialize the QR code scanner for the host
  */
 function initHostQRScanner() {
-  // Initialize the QR code scanner with better configuration
-  const html5QrcodeScanner = new Html5QrcodeScanner(
-    'host-qr-scanner',
-    {
-      fps: 10,
-      qrbox: { width: 250, height: 250 },
-      rememberLastUsedCamera: true,
-      showTorchButtonIfSupported: true,
-      formatsToSupport: [0], // QR_CODE only
-      aspectRatio: 1.0,
-    },
-    /* verbose= */ false
-  );
-
   // Define the success callback
   const onScanSuccess = decodedText => {
     console.log(`QR Code detected: ${decodedText}`);
@@ -203,43 +188,17 @@ function initHostQRScanner() {
     answerInput.value = decodedText;
 
     // Clear the scanner HTML
-    html5QrcodeScanner.clear();
+    clearQRScanner(html5QrcodeScanner);
 
     // Auto-submit the answer data
     submitAnswer();
   };
 
-  // Render the scanner UI
-  html5QrcodeScanner.render(onScanSuccess, errorMessage => {
-    // Only log errors to console, don't show to user
-
-    if (errorMessage instanceof ZXing.NotFoundException) {
-      console.warn(`QR Code scanning error: ${errorMessage.message}`);
-    }
-  });
+  // Initialize the QR code scanner
+  const html5QrcodeScanner = createQRScanner('host-qr-scanner', onScanSuccess);
 
   // Store scanner instance in a global variable for easy access
   window.hostQrCodeScanner = html5QrcodeScanner;
-
-  // Apply custom styling to fix UI issues
-  setTimeout(() => {
-    const scannerContainer = document.getElementById('host-qr-scanner');
-    if (scannerContainer) {
-      // Fix any overlapping elements
-      const scannerElements = scannerContainer.querySelectorAll('div');
-      scannerElements.forEach(element => {
-        element.style.maxWidth = '100%';
-        element.style.boxSizing = 'border-box';
-      });
-
-      // Fix select elements
-      const selectElements = scannerContainer.querySelectorAll('select');
-      selectElements.forEach(select => {
-        select.style.maxWidth = '100%';
-        select.style.boxSizing = 'border-box';
-      });
-    }
-  }, 500);
 }
 
 /**
@@ -264,20 +223,6 @@ function initGuest() {
  * Initialize the QR code scanner
  */
 function initQRScanner() {
-  // Initialize the QR code scanner with better configuration
-  const html5QrcodeScanner = new Html5QrcodeScanner(
-    'qr-scanner',
-    {
-      fps: 10,
-      qrbox: { width: 250, height: 250 },
-      rememberLastUsedCamera: true,
-      showTorchButtonIfSupported: true,
-      formatsToSupport: [0], // QR_CODE only
-      aspectRatio: 1.0,
-    },
-    /* verbose= */ false
-  );
-
   // Define the success callback
   const onScanSuccess = data => {
     console.log('QR Code detected!');
@@ -294,41 +239,17 @@ function initQRScanner() {
     offerInput.value = data;
 
     // Clear the scanner HTML
-    html5QrcodeScanner.clear();
+    clearQRScanner(html5QrcodeScanner);
 
     // Auto-submit the offer data
     submitOffer();
   };
 
-  // Render the scanner UI
-  html5QrcodeScanner.render(onScanSuccess, errorMessage => {
-    if (errorMessage instanceof ZXing.NotFoundException) {
-      console.warn(`QR Code scanning error: ${errorMessage.message}`);
-    }
-  });
+  // Initialize the QR code scanner
+  const html5QrcodeScanner = createQRScanner('qr-scanner', onScanSuccess);
 
   // Store scanner instance in a global variable for easy access
   window.qrCodeScanner = html5QrcodeScanner;
-
-  // Apply custom styling to fix UI issues
-  setTimeout(() => {
-    const scannerContainer = document.getElementById('qr-scanner');
-    if (scannerContainer) {
-      // Fix any overlapping elements
-      const scannerElements = scannerContainer.querySelectorAll('div');
-      scannerElements.forEach(element => {
-        element.style.maxWidth = '100%';
-        element.style.boxSizing = 'border-box';
-      });
-
-      // Fix select elements
-      const selectElements = scannerContainer.querySelectorAll('select');
-      selectElements.forEach(select => {
-        select.style.maxWidth = '100%';
-        select.style.boxSizing = 'border-box';
-      });
-    }
-  }, 500);
 }
 
 /**
@@ -386,7 +307,7 @@ async function submitOffer() {
         // Generate QR code for the answer data
         const qrContainer = document.getElementById('qr-guest');
         if (qrContainer) {
-          Connection.generateQRCode(answerData, qrContainer);
+          generateQRCode(answerData, qrContainer);
         }
 
         // Update status
@@ -598,12 +519,12 @@ function resetConnection() {
 
   // Clear the QR scanners if they exist
   if (window.qrCodeScanner) {
-    window.qrCodeScanner.clear();
+    clearQRScanner(window.qrCodeScanner);
     window.qrCodeScanner = null;
   }
 
   if (window.hostQrCodeScanner) {
-    window.hostQrCodeScanner.clear();
+    clearQRScanner(window.hostQrCodeScanner);
     window.hostQrCodeScanner = null;
   }
 

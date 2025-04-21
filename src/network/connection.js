@@ -1,7 +1,5 @@
 import { Peer } from '../lib/peer.js';
-import QRCode from 'qrcode';
-
-const errorCorrectionLevel = 'L';
+import { generateQRCode } from '../lib/qrcode.js';
 
 /**
  * @typedef {import('../types/index.js').ConnectionData} ConnectionData
@@ -469,41 +467,6 @@ export class Connection {
    * @returns {Promise<void>}
    */
   static async generateQRCode(data, container) {
-    try {
-      // Clear the container
-      container.innerHTML = '';
-
-      // Create a canvas element
-      const canvas = document.createElement('canvas');
-
-      // Set explicit size constraints
-      canvas.style.maxWidth = '100%';
-      canvas.style.height = 'auto';
-
-      // Add the canvas to the container
-      container.appendChild(canvas);
-
-      let canvasData = data;
-
-      if (typeof data === 'object') {
-        canvasData = [{ data, mode: 'byte' }];
-      }
-
-      // Generate QR code on the canvas with better options
-      await QRCode.toCanvas(canvas, canvasData, {
-        width: 300,
-        margin: 1,
-        errorCorrectionLevel,
-        color: {
-          dark: '#000000',
-          light: '#ffffff',
-        },
-      });
-    } catch (error) {
-      console.error('Error generating QR code:', error);
-
-      // Show error message in container
-      container.innerHTML = '<p style="color: red;">Error generating QR code</p>';
-    }
+    return generateQRCode(data, container);
   }
 }
