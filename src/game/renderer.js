@@ -99,8 +99,8 @@ export class GameRenderer {
     ctx.lineWidth = 4;
     ctx.setLineDash([10, 10]);
     ctx.beginPath();
-    ctx.moveTo(this.canvas.width / 2, 0);
-    ctx.lineTo(this.canvas.width / 2, this.canvas.height);
+    ctx.moveTo(0, this.canvas.height / 2); // Start at middle-left
+    ctx.lineTo(this.canvas.width, this.canvas.height / 2); // End at middle-right
     ctx.stroke();
     ctx.setLineDash([]);
 
