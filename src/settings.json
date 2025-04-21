@@ -1,0 +1,12 @@
+{
+  "winScore": 3,
+  "initialBallSpeed": 5,
+  "ballSpeedIncrement": 0.5,
+  "maxBallSpeed": 15,
+  "paddleWidth": 100,
+  "paddleHeight": 20,
+  "ballRadius": 10,
+  "fieldWidth": 800,
+  "fieldHeight": 600,
+  "fieldDepth": 1000
+}

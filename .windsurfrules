@@ -1,14 +1,15 @@
-1. My testing framework is Jest and run by `npm run test`
-2. Unit tests are kept close to the files being tested inside a `__tests__` directory
-3. Types are written in JSDoc and can be found in the `types` director
-4. Code is formatted with Prettier
-5. Code is linted with ESLint and checked with `npm run lint`
-6. Functions have JSDocs for arguments and return values
-7. Prefer smaller functions and avoid long functions
-8. Organize code into multiple files and organized directories
-9. Only use a JSDoc import in a typedef at the top of the file
-10. Prefer optional chaining ?. over null checks
-11. Project is built with vite and output is in the 'docs' directory (for Github Pages)
-12. Use `npm run build` to build the project
-13. Use `npm run start` to start the project
-14. Animation effects are in src/effects
+1. Project is type=module, so use `import` and `export` instead of `require`.
+2. My testing framework is Jest and run by `npm run test`
+3. Unit tests are kept close to the files being tested inside a `__tests__` directory
+4. Types are written in JSDoc and can be found in the `types` director
+5. Code is formatted with Prettier
+6. Code is linted with ESLint and checked with `npm run lint`
+7. Functions have JSDocs for arguments and return values
+8. Prefer smaller functions and avoid long functions
+9. Organize code into multiple files and organized directories
+10. Only use a JSDoc import in a typedef at the top of the file
+11. Prefer optional chaining ?. over null checks
+12. Project is built with vite and output is in the 'docs' directory (for Github Pages)
+13. Use `npm run build` to build the project
+14. Use `npm run start` to start the project
+15. Animation effects are in src/effects

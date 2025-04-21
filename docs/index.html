@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multi Pong</title>
+  
+  <script type="module" crossorigin src="/assets/index-37ce34be.js"></script>
+  <link rel="stylesheet" href="/assets/index-54c94805.css">
+</head>
+<body>
+  <div id="app">
+    <div id="connection-screen" class="screen">
+      <h1>Multi Pong</h1>
+      <div class="connection-options">
+        <button id="host-btn" class="neon-btn">Host Game</button>
+        <button id="guest-btn" class="neon-btn">Join Game</button>
+      </div>
+      
+      <div id="host-screen" class="hidden">
+        <h2>Share this with your guest</h2>
+        <div id="qr-host" class="qr-container"></div>
+        <textarea id="offer-data" readonly></textarea>
+        <div class="connection-controls">
+          <button id="copy-offer-btn" class="neon-btn">Copy Offer</button>
+          <div id="host-connection-status" class="status">Waiting for guest...</div>
+        </div>
+        <div id="host-answer-input" class="hidden">
+          <h2>Enter answer from guest</h2>
+          <textarea id="answer-input" placeholder="Paste answer data here..."></textarea>
+          <button id="submit-answer-btn" class="neon-btn">Connect</button>
+        </div>
+      </div>
+      
+      <div id="guest-screen" class="hidden">
+        <h2>Enter host's offer</h2>
+        <div class="qr-scanner-container">
+          <button id="scan-qr-btn" class="neon-btn">Scan QR Code</button>
+          <div id="qr-scanner" class="hidden"></div>
+        </div>
+        <textarea id="offer-input" placeholder="Paste offer data here..."></textarea>
+        <button id="submit-offer-btn" class="neon-btn">Submit</button>
+        
+        <div id="guest-answer-output" class="hidden">
+          <h2>Share this with the host</h2>
+          <div id="qr-guest" class="qr-container"></div>
+          <textarea id="answer-data" readonly></textarea>
+          <button id="copy-answer-btn" class="neon-btn">Copy Answer</button>
+          <div id="guest-connection-status" class="status">Waiting for host...</div>
+        </div>
+      </div>
+      
+      <div id="connection-success" class="hidden">
+        <h2>Connection Successful!</h2>
+        <p>You are now connected to the other player.</p>
+        <button id="start-game-btn" class="neon-btn">Start Game</button>
+      </div>
+    </div>
+    
+    <div id="game-screen" class="screen hidden">
+      <div class="score-container">
+        <div id="player-score">0</div>
+        <div class="score-divider">:</div>
+        <div id="opponent-score">0</div>
+      </div>
+      <canvas id="game-canvas"></canvas>
+    </div>
+  </div>
+  
+</body>
+</html>
