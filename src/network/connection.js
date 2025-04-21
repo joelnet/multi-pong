@@ -31,6 +31,7 @@ export class Connection {
     this._answerSent = false;
     this._connectionState = 'new'; // new, connecting, connected, disconnected
     this._connectionAttemptTimeout = null;
+    this._pingInterval = null;
   }
 
   /**
@@ -287,6 +288,22 @@ export class Connection {
           },
         });
         console.log('Host sent ping message');
+
+        // Set up a recurring ping interval (every 2 seconds)
+        this._pingInterval = setInterval(() => {
+          if (this.isConnected) {
+            this.sendMessage({
+              type: 'ping',
+              data: {
+                timestamp: Date.now(),
+              },
+            });
+            console.log('Host sent ping message');
+          } else {
+            // Clear the interval if we're no longer connected
+            this._clearPingInterval();
+          }
+        }, 2000);
       }
 
       if (this.onConnected) {
@@ -311,8 +328,18 @@ export class Connection {
               },
             });
             console.log('Guest responded with pong message');
+          } else if (message.type === 'pong' && this.isHost) {
+            // Host handles pong response and updates ping display directly
+            const rtt = Date.now() - message.data.pingTimestamp;
+            console.log(`Round-trip time: ${rtt}ms`);
+
+            // Use the global ping update function
+            if (window.updatePing) {
+              window.updatePing(rtt);
+            }
           }
 
+          // Always pass the message to the onMessage handler
           this.onMessage(message);
         } catch (error) {
           console.error('Error parsing message:', error);
@@ -400,6 +427,38 @@ export class Connection {
   }
 
   /**
+   * Clear the ping interval if it exists
+   * @private
+   */
+  _clearPingInterval() {
+    if (this._pingInterval) {
+      clearInterval(this._pingInterval);
+      this._pingInterval = null;
+    }
+  }
+
+  /**
+   * Disconnect from the peer
+   */
+  disconnect() {
+    // Clear any pending timeouts
+    if (this._connectionAttemptTimeout) {
+      clearTimeout(this._connectionAttemptTimeout);
+      this._connectionAttemptTimeout = null;
+    }
+
+    // Clear ping interval
+    this._clearPingInterval();
+
+    if (this.peer) {
+      this.peer.destroy();
+      this.peer = null;
+      this.isConnected = false;
+      this._connectionState = 'disconnected';
+    }
+  }
+
+  /**
    * Generate a QR code from data
    * @param {string|Uint8Array<ArrayBufferLike>} data - The data to encode in the QR code
    * @param {HTMLElement} container - The container element to render the QR code in
@@ -441,24 +500,6 @@ export class Connection {
 
       // Show error message in container
       container.innerHTML = '<p style="color: red;">Error generating QR code</p>';
-    }
-  }
-
-  /**
-   * Disconnect from the peer
-   */
-  disconnect() {
-    // Clear any pending timeouts
-    if (this._connectionAttemptTimeout) {
-      clearTimeout(this._connectionAttemptTimeout);
-      this._connectionAttemptTimeout = null;
-    }
-
-    if (this.peer) {
-      this.peer.destroy();
-      this.peer = null;
-      this.isConnected = false;
-      this._connectionState = 'disconnected';
     }
   }
 }
