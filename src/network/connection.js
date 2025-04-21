@@ -279,32 +279,8 @@ export class Connection {
       this.isConnected = true;
       this._connectionState = 'connected';
 
-      // If this is the host, send a ping message when connected
-      if (this.isHost) {
-        this.sendMessage({
-          type: 'ping',
-          data: {
-            timestamp: Date.now(),
-          },
-        });
-        console.log('Host sent ping message');
-
-        // Set up a recurring ping interval (every 2 seconds)
-        this._pingInterval = setInterval(() => {
-          if (this.isConnected) {
-            this.sendMessage({
-              type: 'ping',
-              data: {
-                timestamp: Date.now(),
-              },
-            });
-            console.log('Host sent ping message');
-          } else {
-            // Clear the interval if we're no longer connected
-            this._clearPingInterval();
-          }
-        }, 2000);
-      }
+      // Set up ping interval for both host and guest
+      this._setupPingInterval();
 
       if (this.onConnected) {
         this.onConnected();
@@ -317,9 +293,9 @@ export class Connection {
         try {
           const message = JSON.parse(data);
 
-          // Handle ping-pong messages
-          if (message.type === 'ping' && !this.isHost) {
-            // Guest responds to ping with a pong
+          // Handle ping-pong messages for both host and guest
+          if (message.type === 'ping') {
+            // Respond to ping with a pong
             this.sendMessage({
               type: 'pong',
               data: {
@@ -327,9 +303,9 @@ export class Connection {
                 pingTimestamp: message.data.timestamp,
               },
             });
-            console.log('Guest responded with pong message');
-          } else if (message.type === 'pong' && this.isHost) {
-            // Host handles pong response and updates ping display directly
+            console.log(`${this.isHost ? 'Host' : 'Guest'} responded with pong message`);
+          } else if (message.type === 'pong') {
+            // Calculate round-trip time for both host and guest
             const rtt = Date.now() - message.data.pingTimestamp;
             console.log(`Round-trip time: ${rtt}ms`);
 
@@ -435,6 +411,31 @@ export class Connection {
       clearInterval(this._pingInterval);
       this._pingInterval = null;
     }
+  }
+
+  /**
+   * Set up ping interval for both host and guest
+   * @private
+   */
+  _setupPingInterval() {
+    // Clear any existing ping interval
+    this._clearPingInterval();
+
+    // Set up a recurring ping interval (every 2 seconds)
+    this._pingInterval = setInterval(() => {
+      if (this.isConnected) {
+        this.sendMessage({
+          type: 'ping',
+          data: {
+            timestamp: Date.now(),
+          },
+        });
+        console.log(`${this.isHost ? 'Host' : 'Guest'} sent ping message`);
+      } else {
+        // Clear the interval if we're no longer connected
+        this._clearPingInterval();
+      }
+    }, 2000);
   }
 
   /**
