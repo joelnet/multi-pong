@@ -634,6 +634,21 @@ function gameLoop(timestamp) {
 function updateScore(localScore, remoteScore) {
   playerScore.textContent = localScore;
   opponentScore.textContent = remoteScore;
+
+  // If this client is the host, send the score update to the guest.
+  // The guest's handleMessage will receive this and trigger its own engine/UI update.
+  if (isHost && connection) {
+    // Use the correct method name: sendMessage
+    connection.sendMessage({
+      type: 'score',
+      // Send the scores as received by this function.
+      // Guest's engine will interpret these based on the host's perspective.
+      data: {
+        local: localScore, // Host's score
+        remote: remoteScore, // Guest's score
+      },
+    });
+  }
 }
 
 /**
