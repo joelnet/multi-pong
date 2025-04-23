@@ -235,43 +235,65 @@ export class GameEngine {
     const localPaddle = this.gameState.localPlayer.paddle;
     const remotePaddle = this.gameState.remotePlayer.paddle;
 
-    // Simplified 2D AABB collision detection
-    const collidesWithPaddle = paddle => {
-      const paddleLeft = paddle.x - paddle.width / 2;
-      const paddleRight = paddle.x + paddle.width / 2;
-      const paddleTop = paddle.y - paddle.height / 2;
-      const paddleBottom = paddle.y + paddle.height / 2;
-
-      const ballLeft = ball.x - ball.radius;
-      const ballRight = ball.x + ball.radius;
-      const ballTop = ball.y - ball.radius;
-      const ballBottom = ball.y + ball.radius;
-
-      return (
-        ballRight > paddleLeft &&
-        ballLeft < paddleRight &&
-        ballBottom > paddleTop &&
-        ballTop < paddleBottom
-      );
-    };
-
-    // Check collision with local paddle (at the bottom)
+    // Check collision with local paddle (bottom)
     if (
-      ball.velocityY > 0 &&
-      ball.y > settings.fieldHeight / 2 &&
-      collidesWithPaddle(localPaddle)
+      ball.velocityY > 0 && // Ball is moving downward
+      ball.y + ball.radius > localPaddle.y - localPaddle.height / 2 && // Ball bottom edge is below paddle top edge
+      ball.y - ball.radius < localPaddle.y + localPaddle.height / 2 && // Ball top edge is above paddle bottom edge
+      ball.x + ball.radius > localPaddle.x - localPaddle.width / 2 && // Ball right edge is right of paddle left edge
+      ball.x - ball.radius < localPaddle.x + localPaddle.width / 2 // Ball left edge is left of paddle right edge
     ) {
+      // Handle collision with local paddle
       this.handlePaddleCollision(localPaddle);
+
+      // Notify about ball return (for effects)
+      if (this.onBallOut) {
+        this.onBallOut(ball, true);
+      }
+
+      return true;
     }
 
-    // Check collision with remote paddle (at the top)
+    // Check collision with remote paddle (top)
     if (
-      ball.velocityY < 0 &&
-      ball.y < settings.fieldHeight / 2 &&
-      collidesWithPaddle(remotePaddle)
+      ball.velocityY < 0 && // Ball is moving upward
+      ball.y - ball.radius < remotePaddle.y + remotePaddle.height / 2 && // Ball top edge is above paddle bottom edge
+      ball.y + ball.radius > remotePaddle.y - remotePaddle.height / 2 && // Ball bottom edge is below paddle top edge
+      ball.x + ball.radius > remotePaddle.x - remotePaddle.width / 2 && // Ball right edge is right of paddle left edge
+      ball.x - ball.radius < remotePaddle.x + remotePaddle.width / 2 // Ball left edge is left of paddle right edge
     ) {
+      // Handle collision with remote paddle
       this.handlePaddleCollision(remotePaddle);
+
+      // Notify about ball return (for effects)
+      if (this.onBallOut) {
+        this.onBallOut(ball, true);
+      }
+
+      return true;
     }
+
+    // Check collision with side walls
+    if (ball.x - ball.radius < 0 || ball.x + ball.radius > settings.fieldWidth) {
+      // Reverse X direction
+      ball.velocityX = -ball.velocityX;
+
+      // Move ball away from wall to prevent sticking
+      if (ball.x - ball.radius < 0) {
+        ball.x = ball.radius;
+      } else {
+        ball.x = settings.fieldWidth - ball.radius;
+      }
+
+      // Notify about wall collision (for effects)
+      if (this.onBallOut) {
+        this.onBallOut(ball, false, true);
+      }
+
+      return true;
+    }
+
+    return false;
   }
 
   /**
@@ -282,11 +304,11 @@ export class GameEngine {
   handlePaddleCollision(paddle) {
     const ball = this.gameState.ball;
 
-    // Reverse Y velocity
+    // Reverse ball Y direction
     ball.velocityY = -ball.velocityY;
 
-    // Adjust X velocity based on where it hit the paddle
-    // Map hit position from -1 (left edge) to 1 (right edge)
+    // Adjust angle based on where the ball hit the paddle
+    // If ball hits the edge of the paddle, it will bounce at a steeper angle
     const hitX = (ball.x - paddle.x) / (paddle.width / 2);
     const influenceX = 0.75; // How much the paddle edge affects angle
     ball.velocityX += hitX * influenceX * ball.speed; // Adjust angle
@@ -302,6 +324,17 @@ export class GameEngine {
       ball.speed + this.gameState.settings.ballSpeedIncrement,
       this.gameState.settings.maxBallSpeed
     );
+
+    // Add a small random variation to the velocity for more dynamic gameplay
+    const randomVariation = 0.1; // 10% variation
+    ball.velocityX += (Math.random() * 2 - 1) * randomVariation * ball.speed;
+
+    // Normalize the velocity vector to maintain consistent speed
+    const currentSpeed = Math.sqrt(
+      ball.velocityX * ball.velocityX + ball.velocityY * ball.velocityY
+    );
+    ball.velocityX = (ball.velocityX / currentSpeed) * ball.speed;
+    ball.velocityY = (ball.velocityY / currentSpeed) * ball.speed;
   }
 
   /**

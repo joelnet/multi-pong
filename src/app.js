@@ -668,7 +668,7 @@ function startGameAfterCountdown() {
     gameEngine = new GameEngine({
       isHost,
       onScoreUpdate: updateScore,
-      onBallOut: sendBallData,
+      onBallOut: handleBallOut,
       onGameOver: handleGameOver,
     });
 
@@ -737,6 +737,11 @@ function updateScore(localScore, remoteScore) {
       },
     });
   }
+
+  // Apply screen shake effect on score update
+  if (gameRenderer) {
+    gameRenderer.screenShake(10, 500);
+  }
 }
 
 /**
@@ -756,6 +761,37 @@ function sendBallData(ball, isReturn = false) {
   if (isReturn && gameRenderer) {
     gameRenderer.createParticleEffect(ball.x, ball.y);
     gameRenderer.screenShake();
+  }
+}
+
+/**
+ * Handle ball going out of bounds or being returned
+ * @param {import('./types/index.js').Ball} ball - Ball data
+ * @param {boolean} [isReturn=false] - Whether this is a ball return
+ * @param {boolean} [isWallHit=false] - Whether this is a wall hit
+ */
+function handleBallOut(ball, isReturn = false, isWallHit = false) {
+  // Create particle effect at ball position
+  if (gameRenderer) {
+    // Different color based on direction
+    const color = ball.velocityY > 0 ? '#00f3ff' : '#ff00e6';
+
+    if (isReturn) {
+      // More particles for paddle hit
+      gameRenderer.createParticleEffect(ball.x, ball.y, color);
+      // Apply screen shake on paddle hit
+      gameRenderer.screenShake(5, 200);
+    } else if (isWallHit) {
+      // Fewer particles for wall hit
+      gameRenderer.createParticleEffect(ball.x, ball.y, color);
+      // Lighter screen shake for wall hit
+      gameRenderer.screenShake(3, 150);
+    }
+  }
+
+  // Send ball data to other player if we're the host
+  if (isHost) {
+    sendBallData(ball, isReturn);
   }
 }
 
