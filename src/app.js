@@ -33,10 +33,14 @@ const playerScore = document.getElementById('player-score');
 const opponentScore = document.getElementById('opponent-score');
 
 // Game state
+/** @type {Connection} */
 let connection = null;
+/** @type {GameEngine} */
 let gameEngine = null;
+/** @type {GameRenderer} */
 let gameRenderer = null;
 let isHost = false;
+/** @type {number} */
 let animationFrameId = null;
 
 /**
@@ -703,6 +707,7 @@ function gameLoop(timestamp) {
   // If host, send the latest ball state to the guest
   if (isHost && connection) {
     const gameState = gameEngine.getGameState();
+
     // Note: Ignoring isReturn flag for now to focus on basic animation
     sendBallData(gameState.ball, false);
   }
