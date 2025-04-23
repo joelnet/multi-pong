@@ -1,15 +1,16 @@
-1. Project is type=module, so use `import` and `export` instead of `require`.
-2. My testing framework is Jest and run by `npm run test`
-3. Unit tests are kept close to the files being tested inside a `__tests__` directory
-4. Types are written in JSDoc and can be found in the `types` director
-5. Do not use import types like `@param {import('./types/index.js').Ball} ball` inline. Instead create a typedef at the top of the file.
-6. Code is formatted with Prettier
-7. Code is linted with ESLint and checked with `npm run lint` and fixed with `npm run lint:fix`
-8. Functions have JSDocs for arguments and return values
-9. Prefer smaller functions and avoid long functions
-10. Organize code into multiple files and organized directories
-11. Prefer optional chaining ?. over null checks
-12. Project is built with vite and output is in the 'docs' directory (for Github Pages)
-13. Use `npm run build` to build the project
-14. Use `npm run start` to start the project
-15. Animation effects are in src/effects
+1. This project is JavaScript and not TypeScript
+2. Project is type=module, so use `import` and `export` instead of `require`
+3. My testing framework is Jest and run by `npm run test`
+4. Unit tests are kept close to the files being tested inside a `__tests__` directory
+5. Types are written in JSDoc and can be found in the `types` director
+6. Do not use import types like `@param {import('./types/index.js').Ball} ball` inline. Instead create a typedef at the top of the file.
+7. Code is formatted with Prettier
+8. Code is linted with ESLint and checked with `npm run lint` and fixed with `npm run lint:fix`
+9. Functions have JSDocs for arguments and return values
+10. Prefer smaller functions and avoid long functions
+11. Organize code into multiple files and organized directories
+12. Prefer optional chaining ?. over null checks
+13. Project is built with vite and output is in the 'docs' directory (for Github Pages)
+14. Use `npm run build` to build the project
+15. Use `npm run start` to start the project
+16. Animation effects are in src/effects

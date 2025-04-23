@@ -9,22 +9,35 @@ import settings from './settings.json';
 // DOM Elements
 const connectionScreen = document.getElementById('connection-screen');
 const gameScreen = document.getElementById('game-screen');
-const hostBtn = document.getElementById('host-btn');
-const guestBtn = document.getElementById('guest-btn');
+/** @type {HTMLButtonElement} */
+const hostBtn = /** @type {HTMLButtonElement} */ (document.getElementById('host-btn'));
+/** @type {HTMLButtonElement} */
+const guestBtn = /** @type {HTMLButtonElement} */ (document.getElementById('guest-btn'));
 const hostScreen = document.getElementById('host-screen');
 const guestScreen = document.getElementById('guest-screen');
 const qrHost = document.getElementById('qr-host');
-const offerData = document.getElementById('offer-data');
-const offerInput = document.getElementById('offer-input');
-const submitOfferBtn = document.getElementById('submit-offer-btn');
+/** @type {HTMLTextAreaElement} */
+const offerData = /** @type {HTMLTextAreaElement} */ (document.getElementById('offer-data'));
+/** @type {HTMLTextAreaElement} */
+const offerInput = /** @type {HTMLTextAreaElement} */ (document.getElementById('offer-input'));
+/** @type {HTMLButtonElement} */
+const submitOfferBtn = /** @type {HTMLButtonElement} */ (
+  document.getElementById('submit-offer-btn')
+);
 const hostAnswerInput = document.getElementById('host-answer-input');
 const guestAnswerOutput = document.getElementById('guest-answer-output');
-const answerData = document.getElementById('answer-data');
-const answerInput = document.getElementById('answer-input');
-const submitAnswerBtn = document.getElementById('submit-answer-btn');
+/** @type {HTMLTextAreaElement} */
+const answerData = /** @type {HTMLTextAreaElement} */ (document.getElementById('answer-data'));
+/** @type {HTMLTextAreaElement} */
+const answerInput = /** @type {HTMLTextAreaElement} */ (document.getElementById('answer-input'));
+/** @type {HTMLButtonElement} */
+const submitAnswerBtn = /** @type {HTMLButtonElement} */ (
+  document.getElementById('submit-answer-btn')
+);
 const guestConnectionStatus = document.getElementById('guest-connection-status');
 const connectionSuccess = document.getElementById('connection-success');
-const startGameBtn = document.getElementById('start-game-btn');
+/** @type {HTMLButtonElement} */
+const startGameBtn = /** @type {HTMLButtonElement} */ (document.getElementById('start-game-btn'));
 const gameCanvas = document.getElementById('game-canvas');
 const playerScore = document.getElementById('player-score');
 const opponentScore = document.getElementById('opponent-score');
@@ -71,7 +84,7 @@ function init() {
   const qrHost = document.getElementById('qr-host');
   if (qrHost) {
     qrHost.addEventListener('click', () => {
-      copyToClipboard(offerData);
+      copyToClipboard(offerData.value);
 
       // Show visual feedback
       showCopyFeedback(qrHost);
@@ -82,7 +95,7 @@ function init() {
   const qrGuest = document.getElementById('qr-guest');
   if (qrGuest) {
     qrGuest.addEventListener('click', () => {
-      copyToClipboard(answerData);
+      copyToClipboard(answerData.value);
 
       // Show visual feedback
       showCopyFeedback(qrGuest);
@@ -934,29 +947,49 @@ function handleResize() {
 
 /**
  * Copy text to clipboard
- * @param {HTMLTextAreaElement|HTMLInputElement} element - The element containing text to copy
+ * @param {HTMLTextAreaElement|HTMLInputElement|string} source - The element or string containing text to copy
  */
-function copyToClipboard(element) {
-  if (navigator.clipboard && element.value) {
-    navigator.clipboard.writeText(element.value).catch(err => {
+function copyToClipboard(source) {
+  let textToCopy = '';
+  if (typeof source === 'string') {
+    textToCopy = source;
+  } else if (source?.value) {
+    textToCopy = source.value;
+  } else if (source?.textContent) {
+    textToCopy = source.textContent;
+  } else {
+    console.error('Invalid source for clipboard copy');
+    return;
+  }
+
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(textToCopy).catch(err => {
       console.error('Could not copy text: ', err);
-      element.select();
-      try {
-        document.execCommand('copy');
-      } catch (e) {
-        console.error('Fallback clipboard copy failed: ', e);
-        alert('Failed to copy to clipboard. Please copy the text manually.');
-      }
+      fallbackCopy(textToCopy);
     });
   } else {
-    element.select();
-    try {
-      document.execCommand('copy');
-    } catch (e) {
-      console.error('Clipboard copy failed: ', e);
-      alert('Failed to copy to clipboard. Please copy the text manually.');
-    }
+    fallbackCopy(textToCopy);
   }
+}
+
+/**
+ * Fallback method for copying text
+ * @param {string} text - Text to copy
+ */
+function fallbackCopy(text) {
+  const tempTextArea = document.createElement('textarea');
+  tempTextArea.value = text;
+  tempTextArea.style.position = 'fixed';
+  tempTextArea.style.opacity = '0';
+  document.body.appendChild(tempTextArea);
+  tempTextArea.select();
+  try {
+    document.execCommand('copy');
+  } catch (e) {
+    console.error('Clipboard copy failed: ', e);
+    alert('Failed to copy to clipboard. Please copy the text manually.');
+  }
+  document.body.removeChild(tempTextArea);
 }
 
 /**
@@ -1005,28 +1038,20 @@ function submitAnswer() {
  * @param {Event} event - Paste event
  */
 function handlePaste(event) {
-  // Get the pasted text
   const pastedText = event.clipboardData.getData('text/plain');
 
-  // Set the input field value with the pasted text (allow default paste behavior)
   setTimeout(() => {
-    // Check if the pasted text is valid JSON
     try {
       const parsedJson = JSON.parse(pastedText);
 
-      // Only auto-submit if it's an object with expected properties
       if (typeof parsedJson === 'object' && parsedJson !== null) {
-        // For offer data, check if it has type: 'offer' and sdp
         if (event.target === offerInput && parsedJson.type === 'offer' && parsedJson.sdp) {
           submitOfferBtn.click();
-        }
-        // For answer data, check if it has type: 'answer' and sdp
-        else if (event.target === answerInput && parsedJson.type === 'answer' && parsedJson.sdp) {
+        } else if (event.target === answerInput && parsedJson.type === 'answer' && parsedJson.sdp) {
           submitAnswerBtn.click();
         }
       }
     } catch (e) {
-      // Not valid JSON, do nothing and let user submit manually
       console.log('Pasted content is not valid JSON');
     }
   }, 0);
@@ -1036,7 +1061,6 @@ function handlePaste(event) {
 window.updatePing = function (rtt) {
   const pingText = `Ping: ${rtt}ms`;
 
-  // Try to update both ping status elements
   const pingStatus = document.getElementById('ping-status');
   const gamePingStatus = document.getElementById('game-ping-status');
 
@@ -1048,11 +1072,9 @@ window.updatePing = function (rtt) {
     gamePingStatus.textContent = pingText;
   }
 
-  // If neither element was found, create a fallback
   if (!pingStatus && !gamePingStatus) {
     const gameScreen = document.getElementById('game-screen');
     if (gameScreen) {
-      // Check if we already created a fallback
       let fallbackPing = document.getElementById('fallback-ping-status');
       if (!fallbackPing) {
         fallbackPing = document.createElement('div');

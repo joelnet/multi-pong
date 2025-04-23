@@ -301,7 +301,6 @@ export function drawHexagonalBackground(ctx, width, height, options = {}) {
 
 /**
  * Creates a shockwave effect at a specific point
- * @param {CanvasRenderingContext2D} ctx - Canvas context
  * @param {number} x - X coordinate of the center
  * @param {number} y - Y coordinate of the center
  * @param {Object} options - Shockwave options
