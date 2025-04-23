@@ -572,26 +572,30 @@ function resetConnection() {
  * Start the game
  */
 function startGame() {
+  // Calculate a future timestamp for synchronized countdown start
+  // Add 1 second to account for network delay
+  const startTimestamp = Date.now() + 1000;
+
   // First, notify the other player that we want to start the game
   if (connection && connection.isConnected) {
     connection.sendMessage({
       type: 'startCountdown',
       data: {
-        timestamp: Date.now(),
+        timestamp: startTimestamp,
       },
     });
   }
 
-  // Start the countdown
-  startCountdown();
+  // Start the countdown with the future timestamp
+  startCountdown(startTimestamp);
 }
 
 /**
  * Start the countdown sequence
- * @param {number} [syncTimestamp] - Optional timestamp for synchronization between players
+ * @param {number} startTimestamp - Timestamp when the countdown should start
  */
-function startCountdown(syncTimestamp) {
-  console.log('Starting countdown, syncTimestamp:', syncTimestamp);
+function startCountdown(startTimestamp) {
+  console.log('Countdown will start at timestamp:', startTimestamp);
   
   // Hide the game over screen if it's visible
   const gameOverScreen = document.getElementById('game-over-screen');
@@ -609,53 +613,27 @@ function startCountdown(syncTimestamp) {
   if (countdownScreen && countdownNumber) {
     countdownScreen.classList.remove('hidden');
 
-    // Initialize count to 3
-    let count = 3;
+    // Initialize with empty content
+    countdownNumber.textContent = '';
     
-    // Start with 3
-    countdownNumber.textContent = '3';
-    countdownNumber.style.animation = 'none';
-    // Trigger reflow to restart animation
-    void countdownNumber.offsetWidth;
-    countdownNumber.style.animation = 'countdownPulse 1s ease-in-out';
-
-    // Calculate delay if syncTimestamp is provided (for guest)
-    let initialDelay = 0;
-    if (syncTimestamp) {
-      // Calculate how much time has passed since the host started the countdown
-      const currentTime = Date.now();
-      const elapsedTime = currentTime - syncTimestamp;
-      
-      console.log('Elapsed time since countdown started:', elapsedTime);
-
-      // If less than 3 seconds have passed, adjust the countdown
-      if (elapsedTime < 3000) {
-        initialDelay = Math.max(0, 1000 - (elapsedTime % 1000));
-        
-        // Calculate which number we should start with
-        const secondsElapsed = Math.floor(elapsedTime / 1000);
-        count = Math.max(1, 3 - secondsElapsed);
-        
-        console.log('Starting countdown at:', count, 'with delay:', initialDelay);
-        
-        // Update the display immediately to the correct number
-        if (count < 3) {
-          countdownNumber.textContent = count.toString();
-        }
-      } else {
-        // If more than 3 seconds have passed, skip countdown
-        console.log('Skipping countdown, too much time elapsed');
-        countdownScreen.classList.add('hidden');
-        startGameAfterCountdown();
-        return;
-      }
-    }
+    // Calculate how long to wait before starting the countdown
+    const now = Date.now();
+    const waitTime = Math.max(0, startTimestamp - now);
     
-    // Start the countdown after the initial delay (if any)
+    console.log(`Waiting ${waitTime}ms before starting countdown`);
+
+    // Wait until the specified start time
     setTimeout(() => {
-      let countdownInterval;
+      // Start with 3
+      countdownNumber.textContent = '3';
+      countdownNumber.style.animation = 'none';
+      void countdownNumber.offsetWidth;
+      countdownNumber.style.animation = 'countdownPulse 1s ease-in-out';
       
-      const runCountdown = () => {
+      // Count down from 3 to 1
+      let count = 3;
+      
+      const countdownInterval = setInterval(() => {
         count--;
         console.log('Countdown:', count);
 
@@ -663,29 +641,16 @@ function startCountdown(syncTimestamp) {
           // Update the countdown number
           countdownNumber.textContent = count.toString();
           countdownNumber.style.animation = 'none';
-          // Trigger reflow to restart animation
           void countdownNumber.offsetWidth;
           countdownNumber.style.animation = 'countdownPulse 1s ease-in-out';
         } else {
           // Countdown finished
           clearInterval(countdownInterval);
-
-          // Hide countdown screen
           countdownScreen.classList.add('hidden');
-
-          // Start the actual game
           startGameAfterCountdown();
         }
-      };
-      
-      // If we're not starting at 3, we need to run the first countdown immediately
-      if (count < 3) {
-        runCountdown();
-      }
-      
-      // Set up the interval for the remaining counts
-      countdownInterval = setInterval(runCountdown, 1000);
-    }, initialDelay);
+      }, 1000);
+    }, waitTime);
   } else {
     // If countdown elements don't exist, start the game immediately
     startGameAfterCountdown();
