@@ -15,7 +15,7 @@ const errorCorrectionLevel = 'M';
 
 /**
  * Generate a QR code from data
- * @param {string|Uint8Array<ArrayBufferLike>} data - The data to encode in the QR code
+ * @param {string} data - The data to encode in the QR code
  * @param {HTMLElement} container - The container element to render the QR code in
  * @returns {Promise<void>}
  */
@@ -34,14 +34,8 @@ export async function generateQRCode(data, container) {
     // Add the canvas to the container
     container.appendChild(canvas);
 
-    let canvasData = data;
-
-    if (typeof data === 'object') {
-      canvasData = [{ data, mode: 'byte' }];
-    }
-
     // Generate QR code on the canvas with better options
-    await QRCode.toCanvas(canvas, canvasData, {
+    await QRCode.toCanvas(canvas, data, {
       width: 300,
       margin: 1,
       errorCorrectionLevel,

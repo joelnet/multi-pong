@@ -37,9 +37,6 @@ export class GameRenderer {
     this.ballTrail = [];
     this.maxTrailLength = 20; // Increased from 10 for longer trails
 
-    // For debug visualization
-    this.showDebugInfo = false;
-
     // For paddle trails
     this.localPaddleTrail = [];
     this.remotePaddleTrail = [];
@@ -101,6 +98,9 @@ export class GameRenderer {
       drawTronGrid(this.ctx, this.canvas.width, this.canvas.height, {
         cellSize: 80,
         fadeDistance: Math.max(this.canvas.width, this.canvas.height) * 0.6,
+        primaryColor: 'rgba(0, 243, 255, 1)',
+        secondaryColor: 'rgba(0, 243, 255, 0.5)',
+        pulseSpeed: 0.001,
       });
     }
 
@@ -108,6 +108,8 @@ export class GameRenderer {
       drawEnergyField(this.ctx, this.canvas.width, this.canvas.height, {
         intensity: 0.4,
         frequency: 0.005,
+        color: 'rgba(0, 243, 255, 0.7)',
+        speed: 0.001,
       });
     }
   }
@@ -152,11 +154,6 @@ export class GameRenderer {
 
     // Draw shockwaves
     updateShockwaves(this.ctx);
-
-    // Draw debug info if enabled
-    if (this.showDebugInfo) {
-      this.drawDebugInfo(gameState);
-    }
   }
 
   /**
@@ -441,33 +438,6 @@ export class GameRenderer {
         size: 25,
       }
     );
-
-    // Draw velocity vector for debug mode
-    if (this.showDebugInfo) {
-      const velocityScale = 5;
-      const startX = ball.x * this.scaleX;
-      const startY = ball.y * this.scaleY;
-      const endX = startX + ball.velocityX * velocityScale;
-      const endY = startY + ball.velocityY * velocityScale;
-
-      ctx.strokeStyle = '#ff0000'; // Red velocity vector
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(startX, startY);
-      ctx.lineTo(endX, endY);
-      ctx.stroke();
-
-      // Draw ball speed (2D)
-      const speed = Math.sqrt(ball.velocityX ** 2 + ball.velocityY ** 2);
-      const speedText = `Speed: ${speed.toFixed(1)}`;
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '10px Arial';
-      ctx.fillText(speedText, startX + ballRadius * this.scaleX + 5, startY);
-
-      // Draw ball position
-      const posText = `Pos: ${ball.x.toFixed(0)}, ${ball.y.toFixed(0)}`;
-      ctx.fillText(posText, startX + ballRadius * this.scaleX + 5, startY + 12);
-    }
   }
 
   /**
@@ -618,12 +588,5 @@ export class GameRenderer {
       this.shakeIntensity = 0;
       this.shakeOffset = { x: 0, y: 0 };
     }
-  }
-
-  /**
-   * Toggle debug information display
-   */
-  toggleDebugInfo() {
-    this.showDebugInfo = !this.showDebugInfo;
   }
 }

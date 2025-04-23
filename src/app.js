@@ -38,9 +38,12 @@ const guestConnectionStatus = document.getElementById('guest-connection-status')
 const connectionSuccess = document.getElementById('connection-success');
 /** @type {HTMLButtonElement} */
 const startGameBtn = /** @type {HTMLButtonElement} */ (document.getElementById('start-game-btn'));
-const gameCanvas = document.getElementById('game-canvas');
-const playerScore = document.getElementById('player-score');
-const opponentScore = document.getElementById('opponent-score');
+/** @type {HTMLCanvasElement} */
+const gameCanvas = /** @type {HTMLCanvasElement} */ (document.getElementById('game-canvas'));
+/** @type {HTMLElement} */
+const playerScore = /** @type {HTMLElement} */ (document.getElementById('player-score'));
+/** @type {HTMLElement} */
+const opponentScore = /** @type {HTMLElement} */ (document.getElementById('opponent-score'));
 
 // Game state
 /** @type {Connection} */
@@ -307,7 +310,10 @@ async function submitOffer() {
         hideOfferInputSection();
 
         // Show the answer data
-        const answerDataElement = document.getElementById('answer-data');
+        /** @type {HTMLTextAreaElement} */
+        const answerDataElement = /** @type {HTMLTextAreaElement} */ (
+          document.getElementById('answer-data')
+        );
         if (answerDataElement) {
           answerDataElement.value = answerData;
         }
@@ -735,8 +741,8 @@ function gameLoop(timestamp) {
  * @param {number} remoteScore - Remote player score
  */
 function updateScore(localScore, remoteScore) {
-  playerScore.textContent = localScore;
-  opponentScore.textContent = remoteScore;
+  playerScore.textContent = String(localScore);
+  opponentScore.textContent = String(remoteScore);
 
   // If this client is the host, send the score update to the guest.
   // The guest's handleMessage will receive this and trigger its own engine/UI update.
@@ -874,8 +880,8 @@ function handleGameOver(localWon) {
 }
 
 /**
- * Handle touch/mouse start
- * @param {Event} event - Touch or mouse event
+ * Handle touch start
+ * @param {TouchEvent|MouseEvent} event - Touch or mouse event
  */
 function handleTouchStart(event) {
   if (!gameEngine || !gameEngine.gameState.isPlaying || gameEngine.gameState.isPaused) {
@@ -890,7 +896,7 @@ function handleTouchStart(event) {
 
 /**
  * Handle touch/mouse move
- * @param {Event} event - Touch or mouse event
+ * @param {TouchEvent|MouseEvent} event - Touch or mouse event
  */
 function handleTouchMove(event) {
   if (!gameEngine || !gameEngine.gameState.isPlaying || gameEngine.gameState.isPaused) {
@@ -899,14 +905,23 @@ function handleTouchMove(event) {
 
   event.preventDefault();
 
-  const touch = event.touches ? event.touches[0] : event;
-  const currentX = touch.clientX;
+  let clientX;
+  // Check if it's a touch event
+  if ('touches' in event && event.touches.length > 0) {
+    clientX = event.touches[0].clientX;
+  } else if ('clientX' in event) {
+    // It's a mouse event
+    clientX = event.clientX;
+  } else {
+    // Unknown event type
+    return;
+  }
 
   // Map screen coordinates to game coordinates
   const rect = gameCanvas.getBoundingClientRect();
   const scaleX = settings.fieldWidth / rect.width;
 
-  const gameX = (currentX - rect.left) * scaleX;
+  const gameX = (clientX - rect.left) * scaleX;
 
   // Update local paddle position
   gameEngine.updatePaddlePosition(gameX, true);
@@ -923,7 +938,7 @@ function handleTouchMove(event) {
 
 /**
  * Handle touch/mouse end
- * @param {Event} event - Touch or mouse event
+ * @param {TouchEvent|MouseEvent} event - Touch or mouse event
  */
 function handleTouchEnd(event) {
   if (!gameEngine || !gameEngine.gameState.isPlaying || gameEngine.gameState.isPaused) {
@@ -1035,7 +1050,7 @@ function submitAnswer() {
 
 /**
  * Handle paste event
- * @param {Event} event - Paste event
+ * @param {ClipboardEvent} event - Paste event
  */
 function handlePaste(event) {
   const pastedText = event.clipboardData.getData('text/plain');
