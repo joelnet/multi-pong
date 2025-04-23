@@ -287,14 +287,17 @@ export class Connection {
     });
 
     this.peer.on('data', data => {
+      // Convert data to string if it's not already a string
+      const dataString = typeof data === 'string' ? data : new TextDecoder().decode(data);
+
       // Only log non-ping/pong messages or if they're the first ones
-      if (!data.includes('"type":"ping"') && !data.includes('"type":"pong"')) {
-        console.log('Received data from peer', data);
+      if (!dataString.includes('"type":"ping"') && !dataString.includes('"type":"pong"')) {
+        console.log('Received data from peer', dataString);
       }
 
       if (this.onMessage) {
         try {
-          const message = JSON.parse(data);
+          const message = JSON.parse(dataString);
 
           // Handle ping-pong messages for both host and guest
           if (message.type === 'ping') {

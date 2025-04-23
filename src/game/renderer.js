@@ -154,6 +154,12 @@ export class GameRenderer {
 
     // Draw shockwaves
     updateShockwaves(this.ctx);
+
+    // Restore the canvas state after all rendering is complete
+    // This ensures the screen returns to its original position
+    if (this.shakeIntensity > 0) {
+      this.ctx.restore();
+    }
   }
 
   /**
@@ -570,6 +576,9 @@ export class GameRenderer {
     const elapsed = performance.now() - this.shakeStartTime;
     const progress = Math.min(1, elapsed / this.shakeDuration);
 
+    // Save the canvas state before applying any transformations
+    this.ctx.save();
+
     if (progress < 1) {
       // Calculate decreasing intensity
       const currentIntensity = this.shakeIntensity * (1 - progress);
@@ -581,7 +590,6 @@ export class GameRenderer {
       };
 
       // Apply transform to canvas
-      this.ctx.save();
       this.ctx.translate(this.shakeOffset.x, this.shakeOffset.y);
     } else {
       // Reset shake effect
