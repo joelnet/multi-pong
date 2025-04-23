@@ -573,8 +573,8 @@ function resetConnection() {
  */
 function startGame() {
   // Calculate a future timestamp for synchronized countdown start
-  // Add 1 second to account for network delay
-  const startTimestamp = Date.now() + 1000;
+  // Use a small buffer (100ms) just to account for message transmission
+  const startTimestamp = Date.now() + 100;
 
   // First, notify the other player that we want to start the game
   if (connection && connection.isConnected) {
@@ -613,37 +613,33 @@ function startCountdown(startTimestamp) {
   if (countdownScreen && countdownNumber) {
     countdownScreen.classList.remove('hidden');
 
-    // Initialize with empty content
-    countdownNumber.textContent = '';
+    // Show 3 immediately
+    countdownNumber.textContent = '3';
+    countdownNumber.style.animation = 'none';
+    void countdownNumber.offsetWidth;
+    countdownNumber.style.animation = 'countdownPulse 1s ease-in-out';
     
-    // Calculate how long to wait before starting the countdown
+    // Calculate how long to wait before starting the countdown for 2 and 1
     const now = Date.now();
     const waitTime = Math.max(0, startTimestamp - now);
     
-    console.log(`Waiting ${waitTime}ms before starting countdown`);
+    console.log(`Waiting ${waitTime}ms before continuing countdown`);
 
-    // Wait until the specified start time
+    // Wait until the specified start time before showing 2
     setTimeout(() => {
-      // Start with 3
-      countdownNumber.textContent = '3';
-      countdownNumber.style.animation = 'none';
-      void countdownNumber.offsetWidth;
-      countdownNumber.style.animation = 'countdownPulse 1s ease-in-out';
-      
-      // Count down from 3 to 1
-      let count = 3;
+      // Count down from 2 to 1
+      let count = 2;
       
       const countdownInterval = setInterval(() => {
+        // Update the countdown number
+        countdownNumber.textContent = count.toString();
+        countdownNumber.style.animation = 'none';
+        void countdownNumber.offsetWidth;
+        countdownNumber.style.animation = 'countdownPulse 1s ease-in-out';
+        
         count--;
-        console.log('Countdown:', count);
 
-        if (count > 0) {
-          // Update the countdown number
-          countdownNumber.textContent = count.toString();
-          countdownNumber.style.animation = 'none';
-          void countdownNumber.offsetWidth;
-          countdownNumber.style.animation = 'countdownPulse 1s ease-in-out';
-        } else {
+        if (count < 0) {
           // Countdown finished
           clearInterval(countdownInterval);
           countdownScreen.classList.add('hidden');
