@@ -391,6 +391,12 @@ function handleConnectionSuccess() {
  * @param {GameMessage} message - The received message
  */
 function handleMessage(message) {
+  // Handle messages that should work even without a game engine
+  if (message.type === 'startCountdown') {
+    startCountdown(message.data.timestamp);
+    return;
+  }
+
   if (gameEngine) {
     switch (message.type) {
       case 'ball':
@@ -566,6 +572,27 @@ function resetConnection() {
  * Start the game
  */
 function startGame() {
+  // First, notify the other player that we want to start the game
+  if (connection && connection.isConnected) {
+    connection.sendMessage({
+      type: 'startCountdown',
+      data: {
+        timestamp: Date.now(),
+      },
+    });
+  }
+
+  // Start the countdown
+  startCountdown();
+}
+
+/**
+ * Start the countdown sequence
+ * @param {number} [syncTimestamp] - Optional timestamp for synchronization between players
+ */
+function startCountdown(syncTimestamp) {
+  console.log('Starting countdown, syncTimestamp:', syncTimestamp);
+  
   // Hide the game over screen if it's visible
   const gameOverScreen = document.getElementById('game-over-screen');
   if (gameOverScreen) {
@@ -575,6 +602,100 @@ function startGame() {
   // Hide connection screen
   connectionScreen.classList.add('hidden');
 
+  // Show countdown screen
+  const countdownScreen = document.getElementById('countdown-screen');
+  const countdownNumber = document.getElementById('countdown-number');
+
+  if (countdownScreen && countdownNumber) {
+    countdownScreen.classList.remove('hidden');
+
+    // Initialize count to 3
+    let count = 3;
+    
+    // Start with 3
+    countdownNumber.textContent = '3';
+    countdownNumber.style.animation = 'none';
+    // Trigger reflow to restart animation
+    void countdownNumber.offsetWidth;
+    countdownNumber.style.animation = 'countdownPulse 1s ease-in-out';
+
+    // Calculate delay if syncTimestamp is provided (for guest)
+    let initialDelay = 0;
+    if (syncTimestamp) {
+      // Calculate how much time has passed since the host started the countdown
+      const currentTime = Date.now();
+      const elapsedTime = currentTime - syncTimestamp;
+      
+      console.log('Elapsed time since countdown started:', elapsedTime);
+
+      // If less than 3 seconds have passed, adjust the countdown
+      if (elapsedTime < 3000) {
+        initialDelay = Math.max(0, 1000 - (elapsedTime % 1000));
+        
+        // Calculate which number we should start with
+        const secondsElapsed = Math.floor(elapsedTime / 1000);
+        count = Math.max(1, 3 - secondsElapsed);
+        
+        console.log('Starting countdown at:', count, 'with delay:', initialDelay);
+        
+        // Update the display immediately to the correct number
+        if (count < 3) {
+          countdownNumber.textContent = count.toString();
+        }
+      } else {
+        // If more than 3 seconds have passed, skip countdown
+        console.log('Skipping countdown, too much time elapsed');
+        countdownScreen.classList.add('hidden');
+        startGameAfterCountdown();
+        return;
+      }
+    }
+    
+    // Start the countdown after the initial delay (if any)
+    setTimeout(() => {
+      let countdownInterval;
+      
+      const runCountdown = () => {
+        count--;
+        console.log('Countdown:', count);
+
+        if (count > 0) {
+          // Update the countdown number
+          countdownNumber.textContent = count.toString();
+          countdownNumber.style.animation = 'none';
+          // Trigger reflow to restart animation
+          void countdownNumber.offsetWidth;
+          countdownNumber.style.animation = 'countdownPulse 1s ease-in-out';
+        } else {
+          // Countdown finished
+          clearInterval(countdownInterval);
+
+          // Hide countdown screen
+          countdownScreen.classList.add('hidden');
+
+          // Start the actual game
+          startGameAfterCountdown();
+        }
+      };
+      
+      // If we're not starting at 3, we need to run the first countdown immediately
+      if (count < 3) {
+        runCountdown();
+      }
+      
+      // Set up the interval for the remaining counts
+      countdownInterval = setInterval(runCountdown, 1000);
+    }, initialDelay);
+  } else {
+    // If countdown elements don't exist, start the game immediately
+    startGameAfterCountdown();
+  }
+}
+
+/**
+ * Start the game after countdown completes
+ */
+function startGameAfterCountdown() {
   // Show game screen
   gameScreen.classList.remove('hidden');
 
