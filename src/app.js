@@ -50,6 +50,12 @@ function init() {
   submitAnswerBtn.addEventListener('click', submitAnswer);
   startGameBtn.addEventListener('click', startGame);
 
+  // Add event listener for the play again button
+  const playAgainBtn = document.getElementById('play-again-btn');
+  if (playAgainBtn) {
+    playAgainBtn.addEventListener('click', startGame);
+  }
+
   // Add paste event listeners for auto-submit
   offerInput.addEventListener('paste', handlePaste);
   answerInput.addEventListener('paste', handlePaste);
@@ -560,46 +566,46 @@ function resetConnection() {
  * Start the game
  */
 function startGame() {
-  // Hide connection screen and show game screen
-  connectionScreen.classList.add('hidden');
-  gameScreen.classList.remove('hidden');
-
-  // Initialize game engine and renderer
-  gameEngine = new GameEngine({
-    isHost,
-    onScoreUpdate: updateScore,
-    // onBallOut: sendBallData, // Removed: Ball data is sent explicitly only once below
-    onGameOver: handleGameOver,
-  });
-
-  gameRenderer = new GameRenderer(gameCanvas);
-
-  // Start game engine
-  gameEngine.startGame();
-
-  // Send initial ball data to other player
-  if (connection) {
-    // For host: initialize the ball and send its initial state
-    if (isHost) {
-      // Explicitly send initial ball state to guest
-      // This is the ONLY time ball data should be sent
-      sendBallData(gameEngine.getGameState().ball, false);
-    } else {
-      // For guest: do nothing
-    }
+  // Hide the game over screen if it's visible
+  const gameOverScreen = document.getElementById('game-over-screen');
+  if (gameOverScreen) {
+    gameOverScreen.classList.add('hidden');
   }
 
-  // Start game loop
-  gameLoop(performance.now());
+  // Hide connection screen
+  connectionScreen.classList.add('hidden');
 
-  // Handle resize
-  handleResize();
+  // Show game screen
+  gameScreen.classList.remove('hidden');
 
-  // Ensure ping display is still visible and working during gameplay
-  const pingStatusElements = document.querySelectorAll('[id$="ping-status"]');
-  pingStatusElements.forEach(element => {
-    element.classList.remove('hidden');
-  });
+  // Disable start button to prevent multiple clicks
+  startGameBtn.disabled = true;
+
+  // Initialize game engine if not already done
+  if (!gameEngine) {
+    gameEngine = new GameEngine({
+      isHost,
+      onScoreUpdate: updateScore,
+      onBallOut: sendBallData,
+      onGameOver: handleGameOver,
+    });
+
+    // Initialize game renderer
+    gameRenderer = new GameRenderer(gameCanvas);
+
+    // Handle window resize
+    handleResize();
+  }
+
+  // Start the game
+  gameEngine.startGame();
+
+  // Start the game loop
+  if (!animationFrameId) {
+    animationFrameId = requestAnimationFrame(gameLoop);
+  }
+
+  console.log('Game started!');
 }
 
 /**
@@ -682,30 +688,56 @@ function handleGameOver(localWon) {
     animationFrameId = null;
   }
 
-  // Show game over message
-  const message = localWon ? 'You Win!' : 'You Lose!';
-  alert(`Game Over! ${message}`);
+  // If this is the host, send game over message to guest
+  if (isHost && connection && connection.isConnected) {
+    connection.sendMessage({
+      type: 'gameOver',
+      data: {
+        localWon: !localWon, // Invert for guest perspective
+      },
+    });
+  }
+
+  // Show game over screen
+  const gameOverScreen = document.getElementById('game-over-screen');
+  if (gameOverScreen) {
+    gameOverScreen.classList.remove('hidden');
+
+    // Update game result message
+    const gameResult = document.getElementById('game-result');
+    if (gameResult) {
+      gameResult.textContent = localWon ? 'You Win!' : 'You Lose!';
+    }
+
+    // Update final scores
+    const finalPlayerScore = document.getElementById('final-player-score');
+    const finalOpponentScore = document.getElementById('final-opponent-score');
+    const gameOverPingStatus = document.getElementById('game-over-ping-status');
+
+    if (finalPlayerScore && finalOpponentScore) {
+      finalPlayerScore.textContent = playerScore.textContent;
+      finalOpponentScore.textContent = opponentScore.textContent;
+    }
+
+    // Copy ping status to game over screen
+    if (gameOverPingStatus) {
+      const gamePingStatus = document.getElementById('game-ping-status');
+      if (gamePingStatus) {
+        gameOverPingStatus.textContent = gamePingStatus.textContent;
+      }
+    }
+  }
+
+  // Hide game screen
+  gameScreen.classList.add('hidden');
+
+  // Hide connection screen (we'll show game over screen instead)
+  connectionScreen.classList.add('hidden');
 
   // Reset game
   if (gameEngine) {
     gameEngine.resetGame();
   }
-
-  // Show connection screen again with connection success visible
-  // (keeping the connection open)
-  connectionScreen.classList.remove('hidden');
-  gameScreen.classList.add('hidden');
-
-  // Show connection success section with start button
-  connectionSuccess.classList.remove('hidden');
-
-  // Hide other connection sections
-  document.querySelector('.connection-options').classList.add('hidden');
-  hostScreen.classList.add('hidden');
-  guestScreen.classList.add('hidden');
-
-  // Enable start game button to allow playing again
-  startGameBtn.disabled = false;
 }
 
 /**

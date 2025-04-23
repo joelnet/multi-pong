@@ -238,6 +238,48 @@ textarea {
   margin: 0 10px;
 }
 
+/* Game Over Screen Styles */
+#game-over-screen {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+#game-result {
+  margin-bottom: 30px;
+}
+
+.final-score {
+  display: flex;
+  font-size: 3.5rem;
+  color: var(--primary-color);
+  text-shadow: 0 0 var(--glow-strength) var(--primary-color);
+  margin-bottom: 30px;
+}
+
+#play-again-btn {
+  font-size: 1.5rem;
+  padding: 15px 40px;
+  margin-top: 30px;
+  animation: pulse 1.5s infinite alternate;
+}
+
+@keyframes pulse {
+  from {
+    transform: scale(1);
+    box-shadow: 0 0 var(--glow-strength) var(--primary-color);
+  }
+  to {
+    transform: scale(1.05);
+    box-shadow: 0 0 calc(var(--glow-strength) * 3) var(--primary-color);
+  }
+}
+
 #game-canvas {
   width: 100%;
   height: 100%;
