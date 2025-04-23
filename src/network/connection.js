@@ -1,5 +1,6 @@
 import { Peer } from './peer.js';
 import { generateQRCode } from '../lib/qrcode.js';
+import { updatePing } from './ping.js';
 
 /**
  * @typedef {import('../types/index.js').ConnectionData} ConnectionData
@@ -310,10 +311,8 @@ export class Connection {
             // Calculate round-trip time for both host and guest
             const rtt = Date.now() - message.data.pingTimestamp;
 
-            // Use the global ping update function
-            if (window.updatePing) {
-              window.updatePing(rtt);
-            }
+            // Use the ping update function
+            updatePing(rtt);
           }
 
           // Always pass the message to the onMessage handler
@@ -462,7 +461,7 @@ export class Connection {
 
   /**
    * Generate a QR code from data
-   * @param {string|Uint8Array<ArrayBufferLike>} data - The data to encode in the QR code
+   * @param {string} data - The data to encode in the QR code
    * @param {HTMLElement} container - The container element to render the QR code in
    * @returns {Promise<void>}
    */
