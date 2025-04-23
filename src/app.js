@@ -55,6 +55,10 @@ let gameRenderer = null;
 let isHost = false;
 /** @type {number} */
 let animationFrameId = null;
+/** @type {any} */
+let hostQrCodeScanner = null;
+/** @type {any} */
+let guestQrCodeScanner = null;
 
 /**
  * Initialize the application
@@ -219,8 +223,8 @@ function initHostQRScanner() {
   // Initialize the QR code scanner
   const html5QrcodeScanner = createQRScanner('host-qr-scanner', onScanSuccess);
 
-  // Store scanner instance in a global variable for easy access
-  window.hostQrCodeScanner = html5QrcodeScanner;
+  // Store scanner instance in a module-level variable for access
+  hostQrCodeScanner = html5QrcodeScanner;
 }
 
 /**
@@ -270,8 +274,8 @@ function initQRScanner() {
   // Initialize the QR code scanner
   const html5QrcodeScanner = createQRScanner('qr-scanner', onScanSuccess);
 
-  // Store scanner instance in a global variable for easy access
-  window.qrCodeScanner = html5QrcodeScanner;
+  // Store scanner instance in a module-level variable for access
+  guestQrCodeScanner = html5QrcodeScanner;
 }
 
 /**
@@ -571,14 +575,14 @@ function resetConnection() {
   guestAnswerOutput.classList.add('hidden');
 
   // Clear the QR scanners if they exist
-  if (window.qrCodeScanner) {
-    clearQRScanner(window.qrCodeScanner);
-    window.qrCodeScanner = null;
+  if (guestQrCodeScanner) {
+    clearQRScanner(guestQrCodeScanner);
+    guestQrCodeScanner = null;
   }
 
-  if (window.hostQrCodeScanner) {
-    clearQRScanner(window.hostQrCodeScanner);
-    window.hostQrCodeScanner = null;
+  if (hostQrCodeScanner) {
+    clearQRScanner(hostQrCodeScanner);
+    hostQrCodeScanner = null;
   }
 
   // Reset form fields
