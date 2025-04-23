@@ -9,7 +9,7 @@ import * as ZXing from 'html5-qrcode/third_party/zxing-js.umd';
 
 /**
  * Error correction level for QR codes
- * @type {string}
+ * @type {'L' | 'M' | 'Q' | 'H'}
  */
 const errorCorrectionLevel = 'M';
 
@@ -74,9 +74,11 @@ export function initQRScanner(elementId, onSuccess) {
   );
 
   // Render the scanner UI
+  // @ts-ignore
   html5QrcodeScanner.render(onSuccess, errorMessage => {
+    // @ts-ignore
     if (errorMessage instanceof ZXing.NotFoundException) {
-      console.warn(`QR Code scanning error: ${errorMessage.message}`);
+      console.warn(`QR Code scanning error: ${errorMessage}`);
     }
   });
 
