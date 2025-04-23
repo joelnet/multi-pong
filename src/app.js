@@ -195,10 +195,10 @@ function showHostWaitingScreen() {
 }
 
 /**
- * Initialize the QR code scanner for the host
+ * Initialize the QR code scanner for both host and guest
  */
 function initHostQRScanner() {
-  // Define the success callback
+  // Define the success callback based on whether we're host or guest
   const onScanSuccess = decodedText => {
     console.log(`QR Code detected: ${decodedText}`);
 
@@ -210,21 +210,34 @@ function initHostQRScanner() {
       console.log('QR code contains non-JSON data, treating as raw SDP string');
     }
 
-    // Fill the answer input with the scanned data
-    answerInput.value = decodedText;
+    if (isHost) {
+      // Fill the answer input with the scanned data
+      answerInput.value = decodedText;
+
+      // Auto-submit the answer data
+      submitAnswer();
+    } else {
+      // Fill the offer input with the processed data
+      offerInput.value = decodedText;
+
+      // Auto-submit the offer data
+      submitOffer();
+    }
 
     // Clear the scanner HTML
     clearQRScanner(html5QrcodeScanner);
-
-    // Auto-submit the answer data
-    submitAnswer();
   };
 
-  // Initialize the QR code scanner
-  const html5QrcodeScanner = createQRScanner('host-qr-scanner', onScanSuccess);
+  // Initialize the QR code scanner with the appropriate element ID
+  const elementId = isHost ? 'host-qr-scanner' : 'guest-qr-scanner';
+  const html5QrcodeScanner = createQRScanner(elementId, onScanSuccess);
 
   // Store scanner instance in a module-level variable for access
-  hostQrCodeScanner = html5QrcodeScanner;
+  if (isHost) {
+    hostQrCodeScanner = html5QrcodeScanner;
+  } else {
+    guestQrCodeScanner = html5QrcodeScanner;
+  }
 }
 
 /**
@@ -240,42 +253,8 @@ function initGuest() {
 
   // Show the guest screen
   guestScreen.classList.remove('hidden');
-
-  // Automatically initialize the QR scanner
-  initQRScanner();
-}
-
-/**
- * Initialize the QR code scanner
- */
-function initQRScanner() {
-  // Define the success callback
-  const onScanSuccess = data => {
-    console.log('QR Code detected!');
-
-    try {
-      // Try to parse the JSON data
-      const jsonData = JSON.parse(data);
-      console.log('Parsed JSON data:', jsonData);
-    } catch (error) {
-      console.log('QR code contains non-JSON data, treating as raw SDP string');
-    }
-
-    // Fill the offer input with the processed data
-    offerInput.value = data;
-
-    // Clear the scanner HTML
-    clearQRScanner(html5QrcodeScanner);
-
-    // Auto-submit the offer data
-    submitOffer();
-  };
-
-  // Initialize the QR code scanner
-  const html5QrcodeScanner = createQRScanner('qr-scanner', onScanSuccess);
-
-  // Store scanner instance in a module-level variable for access
-  guestQrCodeScanner = html5QrcodeScanner;
+  // Initialize the QR scanner for the guest using the host's scanner implementation
+  initHostQRScanner();
 }
 
 /**
