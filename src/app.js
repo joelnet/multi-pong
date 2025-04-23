@@ -691,12 +691,21 @@ function handleGameOver(localWon) {
     gameEngine.resetGame();
   }
 
-  // Show connection screen again
+  // Show connection screen again with connection success visible
+  // (keeping the connection open)
   connectionScreen.classList.remove('hidden');
   gameScreen.classList.add('hidden');
 
-  // Reset connection
-  resetConnection();
+  // Show connection success section with start button
+  connectionSuccess.classList.remove('hidden');
+
+  // Hide other connection sections
+  document.querySelector('.connection-options').classList.add('hidden');
+  hostScreen.classList.add('hidden');
+  guestScreen.classList.add('hidden');
+
+  // Enable start game button to allow playing again
+  startGameBtn.disabled = false;
 }
 
 /**
