@@ -4,10 +4,7 @@ import { GameRenderer } from './game/renderer.js';
 import { generateQRCode, initQRScanner as createQRScanner, clearQRScanner } from './lib/qrcode.js';
 import settings from './settings.json';
 
-/**
- * @typedef {import('./types/index.js').SwipeData} SwipeData
- * @typedef {import('./types/index.js').GameMessage} GameMessage
- */
+/** @typedef {import('./types/index.js').GameMessage} GameMessage */
 
 // DOM Elements
 const connectionScreen = document.getElementById('connection-screen');
