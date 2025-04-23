@@ -5,6 +5,11 @@
  */
 
 /**
+ * @typedef {Error} PeerError
+ * @property {any} [originalEvent] - The original event that caused the error
+ */
+
+/**
  * A simple WebRTC peer connection wrapper
  */
 export class Peer {
@@ -140,14 +145,18 @@ export class Peer {
       }
     };
 
+    this.dataChannel.onerror = error => {
+      console.error('Data channel error:', error);
+      // Create a proper Error object
+      const errorObj = new Error('Data channel error');
+      // @ts-ignore - Adding custom property to Error
+      errorObj.originalEvent = error;
+      this._handleError(errorObj);
+    };
+
     this.dataChannel.onclose = () => {
       console.log('Data channel closed');
       this._handleDisconnect();
-    };
-
-    this.dataChannel.onerror = error => {
-      console.error('Data channel error:', error);
-      this._handleError(error);
     };
 
     // If the data channel is already open, trigger the connect event
@@ -217,7 +226,7 @@ export class Peer {
 
   /**
    * Handle errors
-   * @param {Error} error - The error that occurred
+   * @param {PeerError} error - The error that occurred
    * @private
    */
   _handleError(error) {
@@ -343,7 +352,27 @@ export class Peer {
     if (this.destroyed || !this.connected) return;
 
     try {
-      this.dataChannel.send(data);
+      // Handle different data types
+      if (typeof data === 'string') {
+        // Convert string to Uint8Array for compatibility
+        const encoder = new TextEncoder();
+        this.dataChannel.send(encoder.encode(data));
+      } else if (data instanceof ArrayBuffer) {
+        // Convert ArrayBuffer to Uint8Array
+        this.dataChannel.send(new Uint8Array(data));
+      } else if (data instanceof Blob) {
+        // For Blob, we need to read it as ArrayBuffer first
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (reader.result instanceof ArrayBuffer) {
+            this.dataChannel.send(new Uint8Array(reader.result));
+          }
+        };
+        reader.readAsArrayBuffer(data);
+      } else {
+        // For ArrayBufferView types (already compatible)
+        this.dataChannel.send(data);
+      }
     } catch (error) {
       this._handleError(error);
     }
