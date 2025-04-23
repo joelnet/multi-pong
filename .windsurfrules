@@ -1,16 +1,43 @@
-1. This project is JavaScript and not TypeScript
-2. Project is type=module, so use `import` and `export` instead of `require`
-3. My testing framework is Jest and run by `npm run test`
-4. Unit tests are kept close to the files being tested inside a `__tests__` directory
-5. Types are written in JSDoc and can be found in the `types` director
-6. Do not use import types like `@param {import('./types/index.js').Ball} ball` inline. Instead create a typedef at the top of the file.
-7. Code is formatted with Prettier
-8. Code is linted with ESLint and checked with `npm run lint` and fixed with `npm run lint:fix`
-9. Functions have JSDocs for arguments and return values
-10. Prefer smaller functions and avoid long functions
-11. Organize code into multiple files and organized directories
-12. Prefer optional chaining ?. over null checks
-13. Project is built with vite and output is in the 'docs' directory (for Github Pages)
-14. Use `npm run build` to build the project
-15. Use `npm run start` to start the project
-16. Animation effects are in src/effects
+# Code Style
+
+- Always prefer simple solutions
+- Keep the codebase clean and organized
+- When catching errors, use variable names `err` or `error` (not `e`)
+
+# Code Organization
+
+- Break code into multiple files/directories rather than one large file
+- Prefer smaller functions over long ones
+- Avoid duplicate code by checking for existing similar functionality
+
+# Project Configuration
+
+- JavaScript (not TypeScript)
+- ES modules (use import/export, not require)
+- Built with Vite, output in 'docs' directory (for GitHub Pages)
+- Commands:
+  - npm run build: build project
+  - npm run start: start project
+  - npm run lint: check code
+  - npm run lint:fix: fix linting issues
+
+# Documentation & Testing
+
+- Functions require JSDoc for arguments and return values
+- Types use JSDoc (in types directory). Check if a type already exists before creating a new one.
+- Do not use inline import types; create typedefs at file top
+- Jest testing framework (npm run test)
+- Unit tests in `__tests__` directory near tested files
+- Test files should have a `.test.js` suffix
+
+# Development Practices
+
+- You are careful to only make changes that are requested or you are confident are well understood and related to the change being requested
+- Code is formatted with Prettier
+- Code is linted with ESLint
+- Types are checked with `npm run typecheck`
+
+# Project Specific Rules
+
+- Prefer optional chaining ?. over null checks
+- Animation effects are in src/effects
