@@ -4,7 +4,7 @@
 4. Types are written in JSDoc and can be found in the `types` director
 5. Do not use import types like `@param {import('./types/index.js').Ball} ball` inline. Instead create a typedef at the top of the file.
 6. Code is formatted with Prettier
-7. Code is linted with ESLint and checked with `npm run lint`
+7. Code is linted with ESLint and checked with `npm run lint` and fixed with `npm run lint:fix`
 8. Functions have JSDocs for arguments and return values
 9. Prefer smaller functions and avoid long functions
 10. Organize code into multiple files and organized directories
