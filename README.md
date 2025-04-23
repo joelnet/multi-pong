@@ -32,9 +32,7 @@ The client receiving the ball will be the source of truth for the returning ball
 
 ## Gameplay
 
-The gameplay is classic pong, but with a 3D view perspective from your respective position.
-
-The ball is returned with an upward swipe. The ball is returned faster with a faster swipe. Also the angle of the swipe will determine the angle of the ball returned.
+The gameplay is classic pong.
 
 The ball velocity will increase with each volley. This is configurable in the settings.json.
 
