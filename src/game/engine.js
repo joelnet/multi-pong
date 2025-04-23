@@ -103,9 +103,21 @@ export class GameEngine {
   initBallMovement(serveTowardsLocal = false) {
     const ball = this.gameState.ball;
 
-    // Reset ball position
+    // Set ball X position to the center horizontally
     ball.x = settings.fieldWidth / 2;
-    ball.y = settings.fieldHeight / 2;
+
+    // Set ball Y position based on serving direction
+    // If serving towards local (bottom), start from top of screen
+    // If serving towards remote (top), start from bottom of screen
+    const paddleOffset = settings.paddleHeight * 3; // Keep some distance from the paddle
+
+    if (serveTowardsLocal) {
+      // Serving towards local (bottom), start from top area
+      ball.y = paddleOffset;
+    } else {
+      // Serving towards remote (top), start from bottom area
+      ball.y = settings.fieldHeight - paddleOffset;
+    }
 
     // Give a random initial X direction
     // Use a slightly less steep angle than 45deg
