@@ -596,7 +596,7 @@ function startGame() {
  */
 function startCountdown(startTimestamp) {
   console.log('Countdown will start at timestamp:', startTimestamp);
-  
+
   // Hide the game over screen if it's visible
   const gameOverScreen = document.getElementById('game-over-screen');
   if (gameOverScreen) {
@@ -618,25 +618,25 @@ function startCountdown(startTimestamp) {
     countdownNumber.style.animation = 'none';
     void countdownNumber.offsetWidth;
     countdownNumber.style.animation = 'countdownPulse 1s ease-in-out';
-    
+
     // Calculate how long to wait before starting the countdown for 2 and 1
     const now = Date.now();
     const waitTime = Math.max(0, startTimestamp - now);
-    
+
     console.log(`Waiting ${waitTime}ms before continuing countdown`);
 
     // Wait until the specified start time before showing 2
     setTimeout(() => {
       // Count down from 2 to 1
       let count = 2;
-      
+
       const countdownInterval = setInterval(() => {
         // Update the countdown number
         countdownNumber.textContent = count.toString();
         countdownNumber.style.animation = 'none';
         void countdownNumber.offsetWidth;
         countdownNumber.style.animation = 'countdownPulse 1s ease-in-out';
-        
+
         count--;
 
         if (count < 0) {
