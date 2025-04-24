@@ -1,4 +1,5 @@
 import settings from '../settings.json';
+import { createSoundEffects } from '../effects/sound.js';
 
 /**
  * @typedef {import('../types/index.js').Ball} Ball
@@ -27,6 +28,9 @@ export class GameEngine {
 
     this.gameState = this.createInitialGameState();
     this.lastUpdateTime = 0;
+
+    // Initialize sound effects
+    this.soundEffects = createSoundEffects();
   }
 
   /**
@@ -86,6 +90,9 @@ export class GameEngine {
     this.gameState.isPaused = false;
 
     console.log('Game started, isPlaying set to:', this.gameState.isPlaying);
+
+    // Play game start sound
+    this.soundEffects.playGameStart();
 
     // If host, initialize ball movement, serving towards remote player initially
     if (this.isHost) {
@@ -274,23 +281,18 @@ export class GameEngine {
     }
 
     // Check collision with side walls
-    if (ball.x - ball.radius < 0 || ball.x + ball.radius > settings.fieldWidth) {
-      // Reverse X direction
+    if (ball.x - ball.radius <= 0 || ball.x + ball.radius >= settings.fieldWidth) {
       ball.velocityX = -ball.velocityX;
 
-      // Move ball away from wall to prevent sticking
+      // Play wall hit sound
+      this.soundEffects.playWallHit();
+
+      // If ball is outside the field, correct its position
       if (ball.x - ball.radius < 0) {
         ball.x = ball.radius;
-      } else {
+      } else if (ball.x + ball.radius > settings.fieldWidth) {
         ball.x = settings.fieldWidth - ball.radius;
       }
-
-      // Notify about wall collision (for effects)
-      if (this.onBallOut) {
-        this.onBallOut(ball, false, true);
-      }
-
-      return true;
     }
 
     return false;
@@ -303,6 +305,12 @@ export class GameEngine {
    */
   handlePaddleCollision(paddle) {
     const ball = this.gameState.ball;
+
+    // Play paddle hit sound
+    this.soundEffects.playPaddleHit();
+
+    // Determine if this is the local or remote paddle
+    const isLocalPaddle = paddle === this.gameState.localPlayer.paddle;
 
     // Reverse ball Y direction
     ball.velocityY = -ball.velocityY;
@@ -360,6 +368,9 @@ export class GameEngine {
       return;
     }
 
+    // Play score sound
+    this.soundEffects.playScore();
+
     // Notify score update
     if (this.onScoreUpdate) {
       this.onScoreUpdate(this.gameState.localPlayer.score, this.gameState.remotePlayer.score);
@@ -374,6 +385,9 @@ export class GameEngine {
       // Stop the ball visually until game restarts
       ball.velocityX = 0;
       ball.velocityY = 0;
+
+      // Play game over sound
+      this.soundEffects.playGameOver();
 
       if (this.onGameOver) {
         this.onGameOver(this.gameState.localPlayer.score > this.gameState.remotePlayer.score);
