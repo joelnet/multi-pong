@@ -45,6 +45,7 @@ export class Connection {
         // Store collected ICE candidates
         const iceCandidates = [];
         let offerData = null;
+        let hasServerCandidate = false;
 
         this.peer.on('signal', async data => {
           if (data.type === 'offer') {
@@ -53,17 +54,31 @@ export class Connection {
           } else if (data.type === 'candidate') {
             // Store ICE candidates
             iceCandidates.push(data.candidate);
+
+            // Check if we have a server candidate (STUN/TURN)
+            if (data.candidate && data.candidate.candidate) {
+              const candidateStr = data.candidate.candidate.toLowerCase();
+              if (candidateStr.includes(' srflx ') || candidateStr.includes(' relay ')) {
+                console.log('Found server candidate:', candidateStr);
+                hasServerCandidate = true;
+              }
+            }
           }
 
-          // If we have an offer and at least some ICE candidates, or gathering is taking too long,
+          // If we have an offer and server candidates, or gathering is taking too long,
           // send the combined data
-          if (offerData && (iceCandidates.length > 0 || this._isTimeToSendOffer())) {
+          if (
+            offerData &&
+            ((iceCandidates.length > 0 && hasServerCandidate) || this._isTimeToSendOffer())
+          ) {
             const completeOfferData = {
               type: 'offer',
               sdp: offerData.sdp,
               iceCandidates: iceCandidates,
             };
 
+            this._offerSent = true;
+            clearTimeout(this._offerTimeout);
             resolve(JSON.stringify(completeOfferData));
           }
         });
@@ -73,6 +88,10 @@ export class Connection {
         // Set a timeout to send whatever we have if ICE gathering is slow
         this._offerTimeout = setTimeout(() => {
           if (offerData && !this._offerSent) {
+            console.log(
+              'ICE gathering timed out, sending available candidates:',
+              iceCandidates.length
+            );
             const completeOfferData = {
               type: 'offer',
               sdp: offerData.sdp,
@@ -81,7 +100,7 @@ export class Connection {
             this._offerSent = true;
             resolve(JSON.stringify(completeOfferData));
           }
-        }, 5000); // 5 second timeout
+        }, 10000); // Increased to 10 seconds to allow more time for STUN/TURN candidates
       } catch (error) {
         console.error('Error initializing as host:', error);
         reject(error);
@@ -109,6 +128,7 @@ export class Connection {
         // Store collected ICE candidates
         const iceCandidates = [];
         let answerData = null;
+        let hasServerCandidate = false;
 
         this.peer.on('signal', async data => {
           if (data.type === 'answer') {
@@ -117,17 +137,31 @@ export class Connection {
           } else if (data.type === 'candidate') {
             // Store ICE candidates
             iceCandidates.push(data.candidate);
+
+            // Check if we have a server candidate (STUN/TURN)
+            if (data.candidate && data.candidate.candidate) {
+              const candidateStr = data.candidate.candidate.toLowerCase();
+              if (candidateStr.includes(' srflx ') || candidateStr.includes(' relay ')) {
+                console.log('Found server candidate:', candidateStr);
+                hasServerCandidate = true;
+              }
+            }
           }
 
-          // If we have an answer and at least some ICE candidates, or gathering is taking too long,
+          // If we have an answer and server candidates, or gathering is taking too long,
           // send the combined data
-          if (answerData && (iceCandidates.length > 0 || this._isTimeToSendAnswer())) {
+          if (
+            answerData &&
+            ((iceCandidates.length > 0 && hasServerCandidate) || this._isTimeToSendAnswer())
+          ) {
             const completeAnswerData = {
               type: 'answer',
               sdp: answerData.sdp,
               iceCandidates: iceCandidates,
             };
 
+            this._answerSent = true;
+            clearTimeout(this._answerTimeout);
             resolve(JSON.stringify(completeAnswerData));
           }
         });
@@ -137,6 +171,10 @@ export class Connection {
         // Set a timeout to send whatever we have if ICE gathering is slow
         this._answerTimeout = setTimeout(() => {
           if (answerData && !this._answerSent) {
+            console.log(
+              'ICE gathering timed out, sending available candidates:',
+              iceCandidates.length
+            );
             const completeAnswerData = {
               type: 'answer',
               sdp: answerData.sdp,
@@ -145,7 +183,7 @@ export class Connection {
             this._answerSent = true;
             resolve(JSON.stringify(completeAnswerData));
           }
-        }, 5000); // 5 second timeout
+        }, 10000); // Increased to 10 seconds to allow more time for STUN/TURN candidates
 
         // Process the offer data
         try {
