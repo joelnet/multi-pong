@@ -309,9 +309,6 @@ export class GameEngine {
     // Play paddle hit sound
     this.soundEffects.playPaddleHit();
 
-    // Determine if this is the local or remote paddle
-    const isLocalPaddle = paddle === this.gameState.localPlayer.paddle;
-
     // Reverse ball Y direction
     ball.velocityY = -ball.velocityY;
 
