@@ -1,4 +1,9 @@
 /**
+ * A simple WebRTC peer connection wrapper
+ */
+import settings from '../settings.json';
+
+/**
  * @typedef {Object} PeerOptions
  * @property {boolean} [initiator=false] - Whether this peer is the initiator of the connection
  * @property {Object} [config] - RTCPeerConnection configuration
@@ -8,9 +13,9 @@
  * @typedef {Error} PeerError
  * @property {any} [originalEvent] - The original event that caused the error
  */
-
 /**
- * A simple WebRTC peer connection wrapper
+ * Create a new Peer instance
+ * @param {PeerOptions} options - Peer options
  */
 export class Peer {
   /**
@@ -20,27 +25,8 @@ export class Peer {
   constructor(options = {}) {
     this.initiator = options.initiator || false;
     this.config = options.config || {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:global.stun.twilio.com:3478' },
-        // Add TURN servers for NAT traversal across different networks
-        {
-          urls: 'turn:openrelay.metered.ca:80',
-          username: 'openrelayproject',
-          credential: 'openrelayproject',
-        },
-        {
-          urls: 'turn:openrelay.metered.ca:443',
-          username: 'openrelayproject',
-          credential: 'openrelayproject',
-        },
-        {
-          urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-          username: 'openrelayproject',
-          credential: 'openrelayproject',
-        },
-      ],
-      iceCandidatePoolSize: 10, // Increase candidate pool for better connectivity
+      iceServers: settings.webrtc.iceServers,
+      iceCandidatePoolSize: settings.webrtc.iceCandidatePoolSize,
     };
 
     this.peerConnection = null;
