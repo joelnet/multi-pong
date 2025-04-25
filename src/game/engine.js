@@ -442,6 +442,28 @@ export class GameEngine {
   }
 
   /**
+   * Determines if this player is the source of truth for the ball
+   * based on the ball's direction of travel
+   * @returns {boolean} Whether this player is the source of truth
+   */
+  isSourceOfTruth() {
+    const ball = this.gameState.ball;
+
+    // If ball is moving down (positive Y) and player is host, they are the source of truth
+    if (ball.velocityY > 0 && this.isHost) {
+      return true;
+    }
+
+    // If ball is moving up (positive Y) and player is guest, they are the source of truth
+    if (ball.velocityY > 0 && !this.isHost) {
+      return true;
+    }
+
+    // Otherwise, not the source of truth
+    return false;
+  }
+
+  /**
    * Update the game state with data from the remote player
    * @param {Object} data - The remote game state data
    */
