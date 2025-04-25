@@ -1,6 +1,6 @@
 # Multi Pong
 
-A multi-player pong game built with HTML, CSS, and JavaScript without a game server.
+A multi-player pong game built with HTML, CSS, and JavaScript without a game server*.
 
 ## Networking
 
@@ -43,3 +43,13 @@ The score is displayed in the top left of the screen. The first player to score 
 ### Visuals
 
 The game should be built with a dark neon theme reminiscent of Tron with glowing elements. When the ball is returned there are particle effects and screen shakes and sound effects to make the experience more immersive.
+
+---
+
+* **No game server** means this game can be hosted as a static HTML page without requiring a dedicated server for gameplay. While no game server is needed, WebRTC connections between different networks rely on:
+
+- **ICE (Interactive Connectivity Establishment)**: A framework that finds the best path for connecting peers across different networks.
+- **STUN (Session Traversal Utilities for NAT)**: Servers that help peers discover their public IP address when behind a NAT.
+- **TURN (Traversal Using Relays around NAT)**: Relay servers that act as intermediaries when direct connections aren't possible due to restrictive firewalls or NAT configurations.
+
+These services are used only for establishing the initial connection. Once connected, all game data flows directly between players without passing through any server.
