@@ -7,7 +7,7 @@ import settings from './settings.json';
 /** @typedef {import('./types/index.js').GameMessage} GameMessage */
 
 // DOM Elements
-const connectionScreen = document.getElementById('connection-screen');
+const connectionOptions = document.getElementById('connection-options');
 const gameScreen = document.getElementById('game-screen');
 /** @type {HTMLButtonElement} */
 const hostBtn = /** @type {HTMLButtonElement} */ (document.getElementById('host-btn'));
@@ -156,7 +156,7 @@ async function initHost() {
   guestBtn.disabled = true;
 
   // Hide the connection options
-  document.querySelector('.connection-options').classList.add('hidden');
+  connectionOptions.classList.add('hidden');
 
   hostScreen.classList.remove('hidden');
 
@@ -249,7 +249,7 @@ function initGuest() {
   guestBtn.disabled = true;
 
   // Hide the connection options
-  document.querySelector('.connection-options').classList.add('hidden');
+  connectionOptions.classList.add('hidden');
 
   // Show the guest screen
   guestScreen.classList.remove('hidden');
@@ -527,7 +527,7 @@ function resetConnection() {
   submitAnswerBtn.disabled = false;
 
   // Show the connection options again
-  document.querySelector('.connection-options').classList.remove('hidden');
+  connectionOptions.classList.remove('hidden');
 
   // Hide all screens
   hostScreen.classList.add('hidden');
@@ -603,8 +603,11 @@ function startCountdown(startTimestamp) {
     gameOverScreen.classList.add('hidden');
   }
 
-  // Hide connection screen
-  connectionScreen.classList.add('hidden');
+  // Hide all connection-related screens
+  connectionOptions.classList.add('hidden');
+  hostScreen.classList.add('hidden');
+  guestScreen.classList.add('hidden');
+  connectionSuccess.classList.add('hidden');
 
   // Show countdown screen
   const countdownScreen = document.getElementById('countdown-screen');
@@ -858,8 +861,11 @@ function handleGameOver(localWon) {
   // Hide game screen
   gameScreen.classList.add('hidden');
 
-  // Hide connection screen (we'll show game over screen instead)
-  connectionScreen.classList.add('hidden');
+  // Hide all connection-related screens
+  connectionOptions.classList.add('hidden');
+  hostScreen.classList.add('hidden');
+  guestScreen.classList.add('hidden');
+  connectionSuccess.classList.add('hidden');
 
   // Reset game
   if (gameEngine) {
