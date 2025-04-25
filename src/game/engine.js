@@ -177,7 +177,10 @@ export class GameEngine {
     this.updateBall(deltaTime);
 
     // Check for collisions
-    this.checkCollisions();
+    if (this.isSourceOfTruth()) {
+      this.checkCollisionsPaddle();
+    }
+    this.checkCollisionsWall();
 
     return true;
   }
@@ -199,6 +202,8 @@ export class GameEngine {
       ball.velocityX = -ball.velocityX;
       // Clamp position to prevent sticking
       ball.x = Math.max(ball.radius, Math.min(settings.fieldWidth - ball.radius, ball.x));
+      // Play sound effect when ball hits the wall
+      this.soundEffects.playWallHit();
     }
 
     // Check if ball went out of bounds (top/bottom)
@@ -208,14 +213,6 @@ export class GameEngine {
       if (this.isSourceOfTruth()) {
         this.handleBallOut();
       }
-      // Non-source clients will receive the updated state from the source of truth.
-      // No immediate action needed here for the non-source.
-    }
-
-    // Collision with paddles (handled in checkCollisions)
-    // Only the source of truth should check for collisions
-    if (this.isSourceOfTruth()) {
-      this.checkCollisions();
     }
   }
 
@@ -223,7 +220,7 @@ export class GameEngine {
    * Check for collisions between ball and paddles
    * @private
    */
-  checkCollisions() {
+  checkCollisionsPaddle() {
     const ball = this.gameState.ball;
     const localPaddle = this.gameState.localPlayer.paddle;
     const remotePaddle = this.gameState.remotePlayer.paddle;
@@ -266,19 +263,54 @@ export class GameEngine {
       return true;
     }
 
-    // Check collision with side walls
-    if (ball.x - ball.radius <= 0 || ball.x + ball.radius >= settings.fieldWidth) {
-      ball.velocityX = -ball.velocityX;
+    return false;
+  }
 
-      // Play wall hit sound
-      this.soundEffects.playWallHit();
+  /**
+   * Check for collisions between ball and walls
+   * @private
+   */
+  checkCollisionsWall() {
+    const ball = this.gameState.ball;
+    const localPaddle = this.gameState.localPlayer.paddle;
+    const remotePaddle = this.gameState.remotePlayer.paddle;
 
-      // If ball is outside the field, correct its position
-      if (ball.x - ball.radius < 0) {
-        ball.x = ball.radius;
-      } else if (ball.x + ball.radius > settings.fieldWidth) {
-        ball.x = settings.fieldWidth - ball.radius;
+    // Check collision with local paddle (bottom)
+    if (
+      ball.velocityY > 0 && // Ball is moving downward
+      ball.y + ball.radius > localPaddle.y - localPaddle.height / 2 && // Ball bottom edge is below paddle top edge
+      ball.y - ball.radius < localPaddle.y + localPaddle.height / 2 && // Ball top edge is above paddle bottom edge
+      ball.x + ball.radius > localPaddle.x - localPaddle.width / 2 && // Ball right edge is right of paddle left edge
+      ball.x - ball.radius < localPaddle.x + localPaddle.width / 2 // Ball left edge is left of paddle right edge
+    ) {
+      // Handle collision with local paddle
+      this.handlePaddleCollision(localPaddle);
+
+      // Notify about ball return (for effects)
+      if (this.onBallOut) {
+        this.onBallOut(ball, true);
       }
+
+      return true;
+    }
+
+    // Check collision with remote paddle (top)
+    if (
+      ball.velocityY < 0 && // Ball is moving upward
+      ball.y - ball.radius < remotePaddle.y + remotePaddle.height / 2 && // Ball top edge is above paddle bottom edge
+      ball.y + ball.radius > remotePaddle.y - remotePaddle.height / 2 && // Ball bottom edge is below paddle top edge
+      ball.x + ball.radius > remotePaddle.x - remotePaddle.width / 2 && // Ball right edge is right of paddle left edge
+      ball.x - ball.radius < remotePaddle.x + remotePaddle.width / 2 // Ball left edge is left of paddle right edge
+    ) {
+      // Handle collision with remote paddle
+      this.handlePaddleCollision(remotePaddle);
+
+      // Notify about ball return (for effects)
+      if (this.onBallOut) {
+        this.onBallOut(ball, true);
+      }
+
+      return true;
     }
 
     return false;
