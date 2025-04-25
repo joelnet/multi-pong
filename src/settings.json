@@ -1,11 +1,11 @@
 {
   "winScore": 3,
-  "initialBallSpeed": 300,
-  "ballSpeedIncrement": 20,
-  "maxBallSpeed": 1000,
+  "initialBallSpeed": 500,
+  "ballSpeedIncrement": 50,
+  "maxBallSpeed": 3000,
   "paddleWidth": 100,
   "paddleHeight": 20,
   "ballRadius": 10,
-  "fieldWidth": 800,
-  "fieldHeight": 600
+  "fieldWidth": 600,
+  "fieldHeight": 1080
 }

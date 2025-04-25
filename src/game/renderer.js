@@ -25,10 +25,25 @@ export class GameRenderer {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
+
+    // Set up custom viewport height variable for mobile
+    this.setupMobileViewport();
     this.resize();
 
     // Set up resize listener
-    window.addEventListener('resize', this.resize.bind(this));
+    window.addEventListener('resize', () => {
+      this.setupMobileViewport();
+      this.resize();
+    });
+
+    // Add orientation change listener for mobile devices
+    window.addEventListener('orientationchange', () => {
+      // Small delay to ensure browser has updated dimensions
+      setTimeout(() => {
+        this.setupMobileViewport();
+        this.resize();
+      }, 200);
+    });
 
     // Particle effects container
     this.particles = [];
@@ -57,15 +72,64 @@ export class GameRenderer {
   }
 
   /**
+   * Set up custom viewport height for mobile devices
+   * @private
+   */
+  setupMobileViewport() {
+    // Get the true viewport height (without address bar)
+    const viewportHeight = window.innerHeight;
+
+    // Store this as a property for use in resize
+    this.trueViewportHeight = viewportHeight;
+
+    // Force a redraw after viewport changes (especially important for mobile)
+    if (this.canvas) {
+      this.canvas.style.height = `${viewportHeight}px`;
+    }
+  }
+
+  /**
    * Resize the canvas to match the window size
    */
   resize() {
-    this.canvas.width = window.innerWidth;
-    this.canvas.height = window.innerHeight;
+    // Get the viewport dimensions
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = this.trueViewportHeight;
 
-    // Calculate scale factor to maintain aspect ratio
-    this.scaleX = this.canvas.width / settings.fieldWidth;
-    this.scaleY = this.canvas.height / settings.fieldHeight;
+    // Set canvas dimensions to match viewport
+    this.canvas.width = viewportWidth;
+    this.canvas.height = viewportHeight;
+
+    // Calculate scale factors to maintain aspect ratio
+    const gameAspectRatio = settings.fieldWidth / settings.fieldHeight;
+    const viewportAspectRatio = viewportWidth / viewportHeight;
+
+    // Determine scaling approach based on aspect ratio comparison
+    if (viewportAspectRatio < gameAspectRatio) {
+      // Width constrained (portrait orientation)
+      this.scaleX = viewportWidth / settings.fieldWidth;
+      this.scaleY = this.scaleX; // Keep aspect ratio
+    } else {
+      // Height constrained (landscape orientation)
+      this.scaleY = viewportHeight / settings.fieldHeight;
+      this.scaleX = this.scaleY; // Keep aspect ratio
+    }
+
+    // Calculate game field dimensions after scaling
+    this.scaledFieldWidth = settings.fieldWidth * this.scaleX;
+    this.scaledFieldHeight = settings.fieldHeight * this.scaleY;
+
+    // Center the game field in the viewport
+    this.fieldOffsetX = (viewportWidth - this.scaledFieldWidth) / 2;
+    this.fieldOffsetY = (viewportHeight - this.scaledFieldHeight) / 2;
+
+    // Ensure the game field is fully visible on mobile
+    // If the bottom of the field is cut off, adjust the offset
+    if (this.fieldOffsetY + this.scaledFieldHeight > viewportHeight) {
+      // Adjust the vertical offset to ensure the bottom is visible
+      // This creates a slight top bias but ensures the paddle is visible
+      this.fieldOffsetY = Math.max(0, viewportHeight - this.scaledFieldHeight);
+    }
   }
 
   /**
@@ -179,11 +243,18 @@ export class GameRenderer {
       ctx,
       () => {
         ctx.beginPath();
-        ctx.moveTo(0, this.canvas.height / 2);
-        ctx.lineTo(this.canvas.width, this.canvas.height / 2);
+        ctx.moveTo(this.fieldOffsetX, this.fieldOffsetY + this.scaledFieldHeight / 2);
+        ctx.lineTo(
+          this.fieldOffsetX + this.scaledFieldWidth,
+          this.fieldOffsetY + this.scaledFieldHeight / 2
+        );
         ctx.stroke();
       },
-      { color: '#00f3ff', intensity: 0.8, size: 15 }
+      {
+        color: '#00f3ff',
+        intensity: 0.8,
+        size: 15,
+      }
     );
 
     ctx.setLineDash([]);
@@ -195,24 +266,42 @@ export class GameRenderer {
         ctx.strokeStyle = '#00f3ff';
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.rect(0, 0, this.canvas.width, this.canvas.height);
+        ctx.rect(
+          this.fieldOffsetX,
+          this.fieldOffsetY,
+          this.scaledFieldWidth,
+          this.scaledFieldHeight
+        );
         ctx.stroke();
       },
-      { color: '#00f3ff', intensity: 1, size: 20 }
+      {
+        color: '#00f3ff',
+        intensity: 1,
+        size: 20,
+      }
     );
 
     // Add corner accents for a more Tron-like look
     const cornerSize = 40;
     const corners = [
-      { x: 0, y: 0 }, // Top-left
-      { x: this.canvas.width, y: 0 }, // Top-right
-      { x: 0, y: this.canvas.height }, // Bottom-left
-      { x: this.canvas.width, y: this.canvas.height }, // Bottom-right
+      { x: this.fieldOffsetX, y: this.fieldOffsetY }, // Top-left
+      {
+        x: this.fieldOffsetX + this.scaledFieldWidth,
+        y: this.fieldOffsetY,
+      }, // Top-right
+      {
+        x: this.fieldOffsetX,
+        y: this.fieldOffsetY + this.scaledFieldHeight,
+      }, // Bottom-left
+      {
+        x: this.fieldOffsetX + this.scaledFieldWidth,
+        y: this.fieldOffsetY + this.scaledFieldHeight,
+      }, // Bottom-right
     ];
 
     corners.forEach(corner => {
-      const isLeft = corner.x === 0;
-      const isTop = corner.y === 0;
+      const isLeft = corner.x === this.fieldOffsetX;
+      const isTop = corner.y === this.fieldOffsetY;
 
       applyNeonGlow(
         ctx,
@@ -233,7 +322,11 @@ export class GameRenderer {
 
           ctx.stroke();
         },
-        { color: '#00f3ff', intensity: 1, size: 15 }
+        {
+          color: '#00f3ff',
+          intensity: 1,
+          size: 15,
+        }
       );
     });
   }
@@ -250,8 +343,8 @@ export class GameRenderer {
     // Calculate screen coordinates
     const paddleWidth = paddle.width * this.scaleX;
     const paddleHeight = paddle.height * this.scaleY;
-    const x = paddle.x * this.scaleX - paddleWidth / 2;
-    const y = paddle.y * this.scaleY - paddleHeight / 2;
+    const x = this.fieldOffsetX + (paddle.x * this.scaleX - paddleWidth / 2);
+    const y = this.fieldOffsetY + (paddle.y * this.scaleY - paddleHeight / 2);
 
     // Define paddle color based on player
     const paddleColor = isLocal ? '#00f3ff' : '#ff00e6'; // Local=cyan, Remote=magenta
@@ -300,13 +393,15 @@ export class GameRenderer {
    */
   updatePaddleTrail(paddle, isLocal) {
     const trailArray = isLocal ? this.localPaddleTrail : this.remotePaddleTrail;
+    const paddleX = this.fieldOffsetX + paddle.x * this.scaleX;
+    const paddleY = this.fieldOffsetY + paddle.y * this.scaleY;
 
     // Only add to trail if paddle has moved
-    if (trailArray.length === 0 || trailArray[0].x !== paddle.x * this.scaleX) {
+    if (trailArray.length === 0 || trailArray[0].x !== paddleX) {
       // Add current position to trail
       trailArray.unshift({
-        x: paddle.x * this.scaleX,
-        y: paddle.y * this.scaleY,
+        x: paddleX,
+        y: paddleY,
       });
 
       // Limit trail length
@@ -350,8 +445,8 @@ export class GameRenderer {
   updateBallTrail(ball) {
     // Add current position to trail
     this.ballTrail.unshift({
-      x: ball.x * this.scaleX,
-      y: ball.y * this.scaleY,
+      x: this.fieldOffsetX + ball.x * this.scaleX,
+      y: this.fieldOffsetY + ball.y * this.scaleY,
       velocityX: ball.velocityX,
       velocityY: ball.velocityY,
       speed: Math.sqrt(ball.velocityX * ball.velocityX + ball.velocityY * ball.velocityY),
@@ -396,8 +491,8 @@ export class GameRenderer {
   drawBall(ball) {
     const ctx = this.ctx;
     const ballRadius = ball.radius * this.scaleX;
-    const x = ball.x * this.scaleX;
-    const y = ball.y * this.scaleY;
+    const x = this.fieldOffsetX + ball.x * this.scaleX;
+    const y = this.fieldOffsetY + ball.y * this.scaleY;
 
     // Create a pulsing effect for the ball
     const pulseSpeed = 0.005;
@@ -476,8 +571,8 @@ export class GameRenderer {
       }
 
       particles.push({
-        x: x * this.scaleX,
-        y: y * this.scaleY,
+        x: this.fieldOffsetX + x * this.scaleX,
+        y: this.fieldOffsetY + y * this.scaleY,
         velocityX: Math.cos(angle) * speed,
         velocityY: Math.sin(angle) * speed,
         size,
@@ -496,7 +591,7 @@ export class GameRenderer {
 
     // Create a shockwave effect at collision point
     activeShockwaves.push(
-      createShockwave(x * this.scaleX, y * this.scaleY, {
+      createShockwave(this.fieldOffsetX + x * this.scaleX, this.fieldOffsetY + y * this.scaleY, {
         maxRadius: 80,
         duration: 800,
         color: color,
