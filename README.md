@@ -4,13 +4,13 @@ A multi-player pong game built with HTML, CSS, and JavaScript without a game ser
 
 This is a proof of concept and is not intended for production use.
 
-## Networking
+## No Game Server
 
 There is no game server\*. Clients connect to each other and exchange messages using WebRTC with manual signaling.
 
 The manual signaling data exchange is done through (1) a QR code or (2) copy and paste.
 
-### Connecting Clients
+### How to Connect Clients
 
 One client acts as a Host and the other client act as Guest.
 
