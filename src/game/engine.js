@@ -94,9 +94,8 @@ export class GameEngine {
     // Play game start sound
     this.soundEffects.playGameStart();
 
-    // For the initial serve, we still use isHost because the ball is stationary
-    // and isSourceOfTruth() won't work correctly
-    if (this.isHost) {
+    // Ball moves towards the guest, who is the source of truth, so start ball movement.
+    if (!this.isHost) {
       this.initBallMovement(false); // Serve towards remote player (top)
     }
 

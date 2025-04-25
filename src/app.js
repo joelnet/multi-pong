@@ -681,6 +681,9 @@ function startGameAfterCountdown() {
 
   // Start the game
   gameEngine.startGame();
+  if (!gameEngine.isSourceOfTruth()) {
+    sendBallData(gameEngine.gameState.ball, false);
+  }
 
   // Start the game loop
   if (!animationFrameId) {
@@ -772,6 +775,7 @@ function sendBallData(ball, isReturn = false) {
  * @param {boolean} [isWallHit=false] - Whether this is a wall hit
  */
 function handleBallOut(ball, isReturn = false, isWallHit = false) {
+  console.log('handleBallOut called with:', { ball, isReturn, isWallHit });
   // Create particle effect at ball position
   if (gameRenderer) {
     // Different color based on direction
@@ -788,11 +792,6 @@ function handleBallOut(ball, isReturn = false, isWallHit = false) {
       // Lighter screen shake for wall hit
       gameRenderer.screenShake(3, 150);
     }
-  }
-
-  // Send ball data to other player if we're the host
-  if (isHost) {
-    sendBallData(ball, isReturn);
   }
 }
 
