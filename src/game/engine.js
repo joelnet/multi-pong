@@ -126,29 +126,15 @@ export class GameEngine {
       ball.y = settings.fieldHeight - paddleOffset;
     }
 
-    // Give a random initial X direction
-    // Use a slightly less steep angle than 45deg
-    const angleRange = Math.PI / 6; // +/- 30 degrees from horizontal
-    const initialAngle = Math.random() * angleRange * 2 - angleRange; // Random angle between -30 and +30 deg
+    // Give a true 45-degree angle with random left/right direction
+    const angle = Math.PI / 4; // 45 degrees
+    const direction = Math.random() < 0.5 ? -1 : 1; // Random left (-1) or right (1)
 
-    ball.velocityX = settings.initialBallSpeed * Math.cos(initialAngle);
-    ball.velocityY = settings.initialBallSpeed * Math.sin(initialAngle);
+    ball.velocityX = direction * settings.initialBallSpeed * Math.cos(angle);
+    ball.velocityY = settings.initialBallSpeed * Math.sin(angle);
 
-    // Ensure the Y velocity has a minimum magnitude to prevent very horizontal serves
-    const minYVelocityFraction = 0.2; // Minimum 20% of speed goes to Y velocity
-    if (Math.abs(ball.velocityY) < settings.initialBallSpeed * minYVelocityFraction) {
-      const signY =
-        ball.velocityY === 0 ? (Math.random() < 0.5 ? -1 : 1) : Math.sign(ball.velocityY);
-      ball.velocityY = signY * settings.initialBallSpeed * minYVelocityFraction;
-      // Recalculate X velocity to maintain speed
-      const signX =
-        ball.velocityX === 0 ? (Math.random() < 0.5 ? -1 : 1) : Math.sign(ball.velocityX);
-      ball.velocityX =
-        signX *
-        Math.sqrt(
-          settings.initialBallSpeed * settings.initialBallSpeed - ball.velocityY * ball.velocityY
-        );
-    }
+    // No need for minimum Y velocity check since we're using a fixed 45-degree angle
+    // which already ensures sufficient Y velocity
 
     // Host is local (bottom, positive Y), Remote is guest (top, negative Y)
     // If serveTowardsLocal is true, Y velocity should be positive.
