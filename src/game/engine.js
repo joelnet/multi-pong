@@ -393,15 +393,7 @@ export class GameEngine {
       // Reset ball for next round, serving towards the player who LOST the point
       const serveTowardsLocal = pointWinner === 'remote'; // If remote won point, serve towards local
 
-      // After a point, the source of truth for the next serve is determined by the serve direction
-      // If serving towards local (bottom), the remote player (top) is the source of truth
-      // If serving towards remote (top), the local player (bottom) is the source of truth
-      const isSourceForNextServe =
-        (serveTowardsLocal && !this.isHost) || (!serveTowardsLocal && this.isHost);
-
-      if (isSourceForNextServe) {
-        this.initBallMovement(serveTowardsLocal);
-      }
+      this.initBallMovement(serveTowardsLocal);
     }
   }
 
