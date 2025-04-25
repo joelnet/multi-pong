@@ -701,15 +701,23 @@ function startGameAfterCountdown() {
 function gameLoop(timestamp) {
   if (!gameEngine || !gameRenderer) return;
 
+  const previousBall = { ...gameEngine.gameState.ball };
+
   // Update game state
   gameEngine.update(timestamp);
 
   // If source of truth, send the latest ball state to the guest
   if (gameEngine?.isSourceOfTruth()) {
     const gameState = gameEngine.getGameState();
+    const nextBall = gameState.ball;
 
-    // Note: Ignoring isReturn flag for now to focus on basic animation
-    sendBallData(gameState.ball, false);
+    // If ball velocity changed send data
+    if (
+      nextBall.velocityX !== previousBall.velocityX ||
+      nextBall.velocityY !== previousBall.velocityY
+    ) {
+      sendBallData(nextBall, false);
+    }
   }
 
   // Render game
