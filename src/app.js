@@ -34,41 +34,29 @@ function init() {
   $('start-game-btn').addEventListener('click', startGame);
 
   // Add event listener for the play again button
-  const playAgainBtn = $('play-again-btn');
-  if (playAgainBtn) {
-    playAgainBtn.addEventListener('click', startGame);
-  }
-
+  $('play-again-btn')?.addEventListener('click', startGame);
   // Add paste event listeners for auto-submit
   $('offer-input').addEventListener('paste', handlePaste);
   $('answer-input').addEventListener('paste', handlePaste);
 
   // Add event listener for the host done button
-  const hostDoneBtn = $('host-done-btn');
-  if (hostDoneBtn) {
-    hostDoneBtn.addEventListener('click', showHostWaitingScreen);
-  }
+  $('host-done-btn')?.addEventListener('click', showHostWaitingScreen);
 
   // Add event listener for QR code click to copy (host)
-  if ($('qr-host')) {
-    $('qr-host').addEventListener('click', () => {
-      copyToClipboard($('offer-data').value);
+  $('qr-host')?.addEventListener('click', () => {
+    copyToClipboard($('offer-data').value);
 
-      // Show visual feedback
-      showCopyFeedback($('qr-host'));
-    });
-  }
+    // Show visual feedback
+    showCopyFeedback($('qr-host'));
+  });
 
   // Add event listener for QR code click to copy (guest)
-  const qrGuest = $('qr-guest');
-  if (qrGuest) {
-    qrGuest.addEventListener('click', () => {
-      copyToClipboard($('answer-data').value);
+  $('qr-guest')?.addEventListener('click', () => {
+    copyToClipboard($('answer-data').value);
 
-      // Show visual feedback
-      showCopyFeedback(qrGuest);
-    });
-  }
+    // Show visual feedback
+    showCopyFeedback($('qr-guest'));
+  });
 
   // Set up touch/mouse events for the game
   $('game-canvas').addEventListener('mousedown', handleTouchStart);
@@ -147,12 +135,8 @@ async function initHost() {
  */
 function showHostWaitingScreen() {
   // Hide the share section
-  const hostShareSection = $('host-share-section');
-  if (hostShareSection) {
-    hostShareSection.classList.add('hidden');
-  }
-
-  $('host-answer-input').classList.remove('hidden');
+  $('host-share-section')?.classList.add('hidden');
+  $('host-answer-input')?.classList.remove('hidden');
 
   // Initialize QR scanner for the host
   initHostQRScanner();
@@ -256,7 +240,7 @@ async function submitOffer() {
         // Hide the offer input section
         const guestOfferSection = $('guest-offer-section');
         if (guestOfferSection) {
-          guestOfferSection.classList.add('hidden');
+          guestOfferSection?.classList.add('hidden');
         }
 
         // Show the answer data
@@ -264,21 +248,16 @@ async function submitOffer() {
           $('answer-data').value = answerDataValue;
         }
 
-        const answerSection = $('answer-section');
-        if (answerSection) {
-          answerSection.classList.remove('hidden');
+        if ($('answer-section')) {
+          $('answer-section').classList.remove('hidden');
         } else {
           // If answer-section doesn't exist, show the guest-answer-output instead
-          const guestAnswerOutput = $('guest-answer-output');
-          if (guestAnswerOutput) {
-            guestAnswerOutput.classList.remove('hidden');
-          }
+          $('guest-answer-output')?.classList.remove('hidden');
         }
 
         // Generate QR code for the answer data
-        const qrContainer = $('qr-guest');
-        if (qrContainer) {
-          generateQRCode(answerDataValue, qrContainer);
+        if ($('qr-guest')) {
+          generateQRCode(answerDataValue, $('qr-guest'));
         }
 
         // Update status
@@ -323,14 +302,12 @@ function handleConnectionSuccess() {
   showScene('connection-success');
 
   // Update connection status for both host and guest
-  const hostConnectionStatus = $('host-connection-status');
-  if (hostConnectionStatus) {
-    hostConnectionStatus.textContent = 'Connected!';
+  if ($('host-connection-status')) {
+    $('host-connection-status').textContent = 'Connected!';
   }
 
-  const guestConnectionStatus = $('guest-connection-status');
-  if (guestConnectionStatus) {
-    guestConnectionStatus.textContent = 'Connected!';
+  if ($('guest-connection-status')) {
+    $('guest-connection-status').textContent = 'Connected!';
   }
 
   // Enable the start game button
@@ -431,13 +408,12 @@ function updatePingDisplay(rtt) {
     }
 
     if (!pingStatus && !gamePingStatus && $$('[id$="ping-status"]').length === 0) {
-      const gameScreen = $('game-screen');
-      if (gameScreen) {
+      if ($('game-screen')) {
         const newPingStatus = document.createElement('div');
         newPingStatus.id = 'emergency-ping-status';
         newPingStatus.className = 'status game-status';
         newPingStatus.textContent = pingText;
-        gameScreen.appendChild(newPingStatus);
+        $('game-screen').appendChild(newPingStatus);
       }
     }
   } catch (error) {
@@ -476,20 +452,12 @@ function resetConnection() {
   $('connection-success').classList.add('hidden');
 
   // Reset host screen sections
-  const hostShareSection = $('host-share-section');
-  if (hostShareSection) {
-    hostShareSection.classList.remove('hidden');
-  }
-
-  $('host-answer-input').classList.add('hidden');
+  $('host-share-section')?.classList.remove('hidden');
+  $('host-answer-input')?.classList.add('hidden');
 
   // Reset guest screen sections
-  const guestOfferSection = $('guest-offer-section');
-  if (guestOfferSection) {
-    guestOfferSection.classList.remove('hidden');
-  }
-
-  $('guest-answer-output').classList.add('hidden');
+  $('guest-offer-section')?.classList.remove('hidden');
+  $('guest-answer-output')?.classList.add('hidden');
 
   // Clear the QR scanners if they exist
   if (guestQrCodeScanner) {
@@ -539,15 +507,12 @@ function startCountdown(startTimestamp) {
   console.log('Countdown will start at timestamp:', startTimestamp);
 
   // Hide the game over screen if it's visible
-  const gameOverScreen = $('game-over-screen');
-  if (gameOverScreen) {
-    gameOverScreen.classList.add('hidden');
-  }
+  $('game-over-screen')?.classList.add('hidden');
 
   // Hide all connection-related screens
-  $('connection-options').classList.add('hidden');
-  $('host-screen').classList.add('hidden');
-  $('guest-screen').classList.add('hidden');
+  $('connection-options')?.classList.add('hidden');
+  $('host-screen')?.classList.add('hidden');
+  $('guest-screen')?.classList.add('hidden');
   $('connection-success').classList.add('hidden');
 
   // Show countdown screen
@@ -770,14 +735,12 @@ function handleGameOver(localWon) {
   }
 
   // Show game over screen
-  const gameOverScreen = $('game-over-screen');
-  if (gameOverScreen) {
-    gameOverScreen.classList.remove('hidden');
+  if ($('game-over-screen')) {
+    $('game-over-screen').classList.remove('hidden');
 
     // Update game result message
-    const gameResult = $('game-result');
-    if (gameResult) {
-      gameResult.textContent = localWon ? 'You Win!' : 'You Lose!';
+    if ($('game-result')) {
+      $('game-result').textContent = localWon ? 'You Win!' : 'You Lose!';
     }
 
     // Update final scores
@@ -958,9 +921,8 @@ function submitAnswer() {
   }
 
   // Update status to show we're connecting
-  const hostConnectionStatus = $('host-connection-status');
-  if (hostConnectionStatus) {
-    hostConnectionStatus.textContent = 'Connecting...';
+  if ($('host-connection-status')) {
+    $('host-connection-status').textContent = 'Connecting...';
   }
 
   try {
@@ -975,8 +937,8 @@ function submitAnswer() {
       $('submit-answer-btn').style.display = '';
     }
 
-    if (hostConnectionStatus) {
-      hostConnectionStatus.textContent = 'Connection failed';
+    if ($('host-connection-status')) {
+      $('host-connection-status').textContent = 'Connection failed';
     }
 
     alert('Error processing answer. Please try again.');
