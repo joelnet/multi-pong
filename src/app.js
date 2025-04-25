@@ -7,41 +7,6 @@ import settings from './settings.json';
 
 /** @typedef {import('./types/index.js').GameMessage} GameMessage */
 
-// DOM Elements
-const connectionOptions = $('connection-options');
-const gameScreen = $('game-screen');
-/** @type {HTMLButtonElement} */
-const hostBtn = /** @type {HTMLButtonElement} */ ($('host-btn'));
-/** @type {HTMLButtonElement} */
-const guestBtn = /** @type {HTMLButtonElement} */ ($('guest-btn'));
-const hostScreen = $('host-screen');
-const guestScreen = $('guest-screen');
-const qrHost = $('qr-host');
-/** @type {HTMLTextAreaElement} */
-const offerData = /** @type {HTMLTextAreaElement} */ ($('offer-data'));
-/** @type {HTMLTextAreaElement} */
-const offerInput = /** @type {HTMLTextAreaElement} */ ($('offer-input'));
-/** @type {HTMLButtonElement} */
-const submitOfferBtn = /** @type {HTMLButtonElement} */ ($('submit-offer-btn'));
-const hostAnswerInput = $('host-answer-input');
-const guestAnswerOutput = $('guest-answer-output');
-/** @type {HTMLTextAreaElement} */
-const answerData = /** @type {HTMLTextAreaElement} */ ($('answer-data'));
-/** @type {HTMLTextAreaElement} */
-const answerInput = /** @type {HTMLTextAreaElement} */ ($('answer-input'));
-/** @type {HTMLButtonElement} */
-const submitAnswerBtn = /** @type {HTMLButtonElement} */ ($('submit-answer-btn'));
-const guestConnectionStatus = $('guest-connection-status');
-const connectionSuccess = $('connection-success');
-/** @type {HTMLButtonElement} */
-const startGameBtn = /** @type {HTMLButtonElement} */ ($('start-game-btn'));
-/** @type {HTMLCanvasElement} */
-const gameCanvas = /** @type {HTMLCanvasElement} */ ($('game-canvas'));
-/** @type {HTMLElement} */
-const playerScore = /** @type {HTMLElement} */ ($('player-score'));
-/** @type {HTMLElement} */
-const opponentScore = /** @type {HTMLElement} */ ($('opponent-score'));
-
 // Game state
 /** @type {Connection} */
 let connection = null;
@@ -62,11 +27,11 @@ let guestQrCodeScanner = null;
  */
 function init() {
   // Set up event listeners
-  hostBtn.addEventListener('click', initHost);
-  guestBtn.addEventListener('click', initGuest);
-  submitOfferBtn.addEventListener('click', submitOffer);
-  submitAnswerBtn.addEventListener('click', submitAnswer);
-  startGameBtn.addEventListener('click', startGame);
+  $('host-btn').addEventListener('click', initHost);
+  $('guest-btn').addEventListener('click', initGuest);
+  $('submit-offer-btn').addEventListener('click', submitOffer);
+  $('submit-answer-btn').addEventListener('click', submitAnswer);
+  $('start-game-btn').addEventListener('click', startGame);
 
   // Add event listener for the play again button
   const playAgainBtn = $('play-again-btn');
@@ -75,8 +40,8 @@ function init() {
   }
 
   // Add paste event listeners for auto-submit
-  offerInput.addEventListener('paste', handlePaste);
-  answerInput.addEventListener('paste', handlePaste);
+  $('offer-input').addEventListener('paste', handlePaste);
+  $('answer-input').addEventListener('paste', handlePaste);
 
   // Add event listener for the host done button
   const hostDoneBtn = $('host-done-btn');
@@ -85,12 +50,12 @@ function init() {
   }
 
   // Add event listener for QR code click to copy (host)
-  if (qrHost) {
-    qrHost.addEventListener('click', () => {
-      copyToClipboard(offerData.value);
+  if ($('qr-host')) {
+    $('qr-host').addEventListener('click', () => {
+      copyToClipboard($('offer-data').value);
 
       // Show visual feedback
-      showCopyFeedback(qrHost);
+      showCopyFeedback($('qr-host'));
     });
   }
 
@@ -98,7 +63,7 @@ function init() {
   const qrGuest = $('qr-guest');
   if (qrGuest) {
     qrGuest.addEventListener('click', () => {
-      copyToClipboard(answerData.value);
+      copyToClipboard($('answer-data').value);
 
       // Show visual feedback
       showCopyFeedback(qrGuest);
@@ -106,12 +71,12 @@ function init() {
   }
 
   // Set up touch/mouse events for the game
-  gameCanvas.addEventListener('mousedown', handleTouchStart);
-  gameCanvas.addEventListener('mousemove', handleTouchMove);
-  gameCanvas.addEventListener('mouseup', handleTouchEnd);
-  gameCanvas.addEventListener('touchstart', handleTouchStart);
-  gameCanvas.addEventListener('touchmove', handleTouchMove);
-  gameCanvas.addEventListener('touchend', handleTouchEnd);
+  $('game-canvas').addEventListener('mousedown', handleTouchStart);
+  $('game-canvas').addEventListener('mousemove', handleTouchMove);
+  $('game-canvas').addEventListener('mouseup', handleTouchEnd);
+  $('game-canvas').addEventListener('touchstart', handleTouchStart);
+  $('game-canvas').addEventListener('touchmove', handleTouchMove);
+  $('game-canvas').addEventListener('touchend', handleTouchEnd);
 
   // Handle window resize
   window.addEventListener('resize', handleResize);
@@ -148,11 +113,11 @@ function showCopyFeedback(container) {
  */
 async function initHost() {
   isHost = true;
-  hostBtn.disabled = true;
-  guestBtn.disabled = true;
+  $('host-btn').disabled = true;
+  $('guest-btn').disabled = true;
 
   // Hide the connection options
-  connectionOptions.classList.add('hidden');
+  $('connection-options').classList.add('hidden');
 
   showScene('host-screen');
 
@@ -167,10 +132,10 @@ async function initHost() {
 
     // Initialize as host and get offer data
     const offer = await connection.initAsHost();
-    offerData.value = offer;
+    $('offer-data').value = offer;
 
     // Generate QR code
-    await generateQRCode(offer, qrHost);
+    await generateQRCode(offer, $('qr-host'));
   } catch (error) {
     console.error('Error initializing as host:', error);
     resetConnection();
@@ -187,7 +152,7 @@ function showHostWaitingScreen() {
     hostShareSection.classList.add('hidden');
   }
 
-  hostAnswerInput.classList.remove('hidden');
+  $('host-answer-input').classList.remove('hidden');
 
   // Initialize QR scanner for the host
   initHostQRScanner();
@@ -211,13 +176,13 @@ function initHostQRScanner() {
 
     if (isHost) {
       // Fill the answer input with the scanned data
-      answerInput.value = decodedText;
+      $('answer-input').value = decodedText;
 
       // Auto-submit the answer data
       submitAnswer();
     } else {
       // Fill the offer input with the processed data
-      offerInput.value = decodedText;
+      $('offer-input').value = decodedText;
 
       // Auto-submit the offer data
       submitOffer();
@@ -244,11 +209,11 @@ function initHostQRScanner() {
  */
 function initGuest() {
   isHost = false;
-  hostBtn.disabled = true;
-  guestBtn.disabled = true;
+  $('host-btn').disabled = true;
+  $('guest-btn').disabled = true;
 
   // Hide the connection options
-  connectionOptions.classList.add('hidden');
+  $('connection-options').classList.add('hidden');
 
   // Show the guest screen
   showScene('guest-screen');
@@ -260,7 +225,7 @@ function initGuest() {
  * Submit offer as guest
  */
 async function submitOffer() {
-  const offerValue = offerInput.value.trim();
+  const offerValue = $('offer-input').value.trim();
 
   if (!offerValue) {
     alert('Please enter or scan an offer');
@@ -268,12 +233,12 @@ async function submitOffer() {
   }
 
   // Hide the submit button since we're auto-connecting
-  if (submitOfferBtn) {
-    submitOfferBtn.style.display = 'none';
+  if ($('submit-offer-btn')) {
+    $('submit-offer-btn').style.display = 'none';
   }
 
   // Show loading state
-  guestConnectionStatus.textContent = 'Connecting...';
+  $('guest-connection-status').textContent = 'Connecting...';
 
   try {
     // Initialize the connection as guest
@@ -295,8 +260,8 @@ async function submitOffer() {
         }
 
         // Show the answer data
-        if (answerData) {
-          answerData.value = answerDataValue;
+        if ($('answer-data')) {
+          $('answer-data').value = answerDataValue;
         }
 
         const answerSection = $('answer-section');
@@ -317,7 +282,7 @@ async function submitOffer() {
         }
 
         // Update status
-        guestConnectionStatus.textContent = 'Waiting for host to accept...';
+        $('guest-connection-status').textContent = 'Waiting for host to accept...';
 
         // Note: The connection will be established automatically when the host processes the answer
         // through the onConnected callback (handleConnectionSuccess)
@@ -327,22 +292,22 @@ async function submitOffer() {
         alert('Error connecting: ' + error.message);
 
         // Show the submit button again in case of error
-        if (submitOfferBtn) {
-          submitOfferBtn.style.display = '';
+        if ($('submit-offer-btn')) {
+          $('submit-offer-btn').style.display = '';
         }
 
-        guestConnectionStatus.textContent = 'Not connected';
+        $('guest-connection-status').textContent = 'Not connected';
       });
   } catch (error) {
     console.error('Error initializing as guest:', error);
     alert('Error connecting: ' + error.message);
 
     // Show the submit button again in case of error
-    if (submitOfferBtn) {
-      submitOfferBtn.style.display = '';
+    if ($('submit-offer-btn')) {
+      $('submit-offer-btn').style.display = '';
     }
 
-    guestConnectionStatus.textContent = 'Not connected';
+    $('guest-connection-status').textContent = 'Not connected';
   }
 }
 
@@ -351,8 +316,8 @@ async function submitOffer() {
  */
 function handleConnectionSuccess() {
   // Hide all screens first
-  hostScreen.classList.add('hidden');
-  guestScreen.classList.add('hidden');
+  $('host-screen').classList.add('hidden');
+  $('guest-screen').classList.add('hidden');
 
   // Show connection success screen
   showScene('connection-success');
@@ -369,8 +334,8 @@ function handleConnectionSuccess() {
   }
 
   // Enable the start game button
-  if (startGameBtn) {
-    startGameBtn.disabled = false;
+  if ($('start-game-btn')) {
+    $('start-game-btn').disabled = false;
   }
 }
 
@@ -497,18 +462,18 @@ function resetConnection() {
     connection = null;
   }
 
-  hostBtn.disabled = false;
-  guestBtn.disabled = false;
-  submitOfferBtn.disabled = false;
-  submitAnswerBtn.disabled = false;
+  $('host-btn').disabled = false;
+  $('guest-btn').disabled = false;
+  $('submit-offer-btn').disabled = false;
+  $('submit-answer-btn').disabled = false;
 
   // Show the connection options again
-  connectionOptions.classList.remove('hidden');
+  $('connection-options').classList.remove('hidden');
 
   // Hide all screens
-  hostScreen.classList.add('hidden');
-  guestScreen.classList.add('hidden');
-  connectionSuccess.classList.add('hidden');
+  $('host-screen').classList.add('hidden');
+  $('guest-screen').classList.add('hidden');
+  $('connection-success').classList.add('hidden');
 
   // Reset host screen sections
   const hostShareSection = $('host-share-section');
@@ -516,7 +481,7 @@ function resetConnection() {
     hostShareSection.classList.remove('hidden');
   }
 
-  hostAnswerInput.classList.add('hidden');
+  $('host-answer-input').classList.add('hidden');
 
   // Reset guest screen sections
   const guestOfferSection = $('guest-offer-section');
@@ -524,7 +489,7 @@ function resetConnection() {
     guestOfferSection.classList.remove('hidden');
   }
 
-  guestAnswerOutput.classList.add('hidden');
+  $('guest-answer-output').classList.add('hidden');
 
   // Clear the QR scanners if they exist
   if (guestQrCodeScanner) {
@@ -538,10 +503,10 @@ function resetConnection() {
   }
 
   // Reset form fields
-  offerData.value = '';
-  offerInput.value = '';
-  answerInput.value = '';
-  answerData.value = '';
+  $('offer-data').value = '';
+  $('offer-input').value = '';
+  $('answer-input').value = '';
+  $('answer-data').value = '';
 }
 
 /**
@@ -580,10 +545,10 @@ function startCountdown(startTimestamp) {
   }
 
   // Hide all connection-related screens
-  connectionOptions.classList.add('hidden');
-  hostScreen.classList.add('hidden');
-  guestScreen.classList.add('hidden');
-  connectionSuccess.classList.add('hidden');
+  $('connection-options').classList.add('hidden');
+  $('host-screen').classList.add('hidden');
+  $('guest-screen').classList.add('hidden');
+  $('connection-success').classList.add('hidden');
 
   // Show countdown screen
   const countdownScreen = $('countdown-screen');
@@ -637,10 +602,10 @@ function startCountdown(startTimestamp) {
  */
 function startGameAfterCountdown() {
   // Show game screen
-  gameScreen.classList.remove('hidden');
+  $('game-screen').classList.remove('hidden');
 
   // Disable start button to prevent multiple clicks
-  startGameBtn.disabled = true;
+  $('start-game-btn').disabled = true;
 
   // Initialize game engine if not already done
   if (!gameEngine) {
@@ -652,7 +617,7 @@ function startGameAfterCountdown() {
     });
 
     // Initialize game renderer
-    gameRenderer = new GameRenderer(gameCanvas);
+    gameRenderer = new GameRenderer($('game-canvas'));
 
     // Handle window resize
     handleResize();
@@ -712,8 +677,8 @@ function gameLoop(timestamp) {
  * @param {number} remoteScore - Remote player score
  */
 function updateScore(localScore, remoteScore) {
-  playerScore.textContent = String(localScore);
-  opponentScore.textContent = String(remoteScore);
+  $('player-score').textContent = String(localScore);
+  $('opponent-score').textContent = String(remoteScore);
 
   // If this client is the host, send the score update to the guest.
   // The guest's handleMessage will receive this and trigger its own engine/UI update.
@@ -821,8 +786,8 @@ function handleGameOver(localWon) {
     const gameOverPingStatus = $('game-over-ping-status');
 
     if (finalPlayerScore && finalOpponentScore) {
-      finalPlayerScore.textContent = playerScore.textContent;
-      finalOpponentScore.textContent = opponentScore.textContent;
+      finalPlayerScore.textContent = $('player-score').textContent;
+      finalOpponentScore.textContent = $('opponent-score').textContent;
     }
 
     // Copy ping status to game over screen
@@ -835,13 +800,13 @@ function handleGameOver(localWon) {
   }
 
   // Hide game screen
-  gameScreen.classList.add('hidden');
+  $('game-screen').classList.add('hidden');
 
   // Hide all connection-related screens
-  connectionOptions.classList.add('hidden');
-  hostScreen.classList.add('hidden');
-  guestScreen.classList.add('hidden');
-  connectionSuccess.classList.add('hidden');
+  $('connection-options').classList.add('hidden');
+  $('host-screen').classList.add('hidden');
+  $('guest-screen').classList.add('hidden');
+  $('connection-success').classList.add('hidden');
 
   // Reset game
   if (gameEngine) {
@@ -888,7 +853,7 @@ function handleTouchMove(event) {
   }
 
   // Map screen coordinates to game coordinates
-  const rect = gameCanvas.getBoundingClientRect();
+  const rect = $('game-canvas').getBoundingClientRect();
   const scaleX = settings.fieldWidth / rect.width;
 
   const gameX = (clientX - rect.left) * scaleX;
@@ -981,15 +946,15 @@ function fallbackCopy(text) {
  * Submit answer as host
  */
 function submitAnswer() {
-  const answer = answerInput.value.trim();
+  const answer = $('answer-input').value.trim();
   if (!answer) {
     alert('Please enter a valid answer');
     return;
   }
 
   // Hide the submit button since we're auto-connecting
-  if (submitAnswerBtn) {
-    submitAnswerBtn.style.display = 'none';
+  if ($('submit-answer-btn')) {
+    $('submit-answer-btn').style.display = 'none';
   }
 
   // Update status to show we're connecting
@@ -1006,8 +971,8 @@ function submitAnswer() {
     console.error('Error processing answer:', error);
 
     // Show the submit button again in case of error
-    if (submitAnswerBtn) {
-      submitAnswerBtn.style.display = '';
+    if ($('submit-answer-btn')) {
+      $('submit-answer-btn').style.display = '';
     }
 
     if (hostConnectionStatus) {
@@ -1030,10 +995,14 @@ function handlePaste(event) {
       const parsedJson = JSON.parse(pastedText);
 
       if (typeof parsedJson === 'object' && parsedJson !== null) {
-        if (event.target === offerInput && parsedJson.type === 'offer' && parsedJson.sdp) {
-          submitOfferBtn.click();
-        } else if (event.target === answerInput && parsedJson.type === 'answer' && parsedJson.sdp) {
-          submitAnswerBtn.click();
+        if (event.target === $('offer-input') && parsedJson.type === 'offer' && parsedJson.sdp) {
+          $('submit-offer-btn').click();
+        } else if (
+          event.target === $('answer-input') &&
+          parsedJson.type === 'answer' &&
+          parsedJson.sdp
+        ) {
+          $('submit-answer-btn').click();
         }
       }
     } catch (e) {
