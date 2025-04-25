@@ -705,8 +705,7 @@ function gameLoop(timestamp) {
   gameEngine.update(timestamp);
 
   // If source of truth, send the latest ball state to the guest
-  if (gameEngine && gameEngine.isSourceOfTruth() && connection) {
-    console.log('ball', gameEngine.gameState.ball);
+  if (gameEngine?.isSourceOfTruth()) {
     const gameState = gameEngine.getGameState();
 
     // Note: Ignoring isReturn flag for now to focus on basic animation
