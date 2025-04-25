@@ -32,6 +32,64 @@ After a volley, the angle and velocity of the ball will be sent to the other cli
 
 The client receiving the ball will be the source of truth for the returning balls velocity and angle. This way no latency or packet loss will affect the game.
 
+## Project Setup
+
+### Dependencies
+
+This project relies on the following key dependencies:
+
+- **html5-qrcode**: For QR code scanning functionality
+- **qrcode**: For generating QR codes
+- **three.js**: For advanced visual effects
+
+### Commands
+
+The following npm commands are available:
+
+```bash
+# Start the development server
+npm run start
+
+# Build the project for production (outputs to 'docs' directory for GitHub Pages)
+npm run build
+
+# Preview the production build
+npm run preview
+
+# Run tests
+npm run test
+
+# Lint the codebase
+npm run lint
+
+# Fix linting issues
+npm run lint:fix
+
+# Format code with Prettier
+npm run format
+
+# Type checking
+npm run typecheck
+```
+
+## Technical Overview
+
+The project is organized into several key directories:
+
+- **src/network/**: Contains WebRTC peer connection implementation for client-to-client communication
+- **src/game/**: Game engine and renderer implementation
+- **src/effects/**: Visual and sound effects including particle systems and screen shake
+- **src/lib/**: Utility functions for DOM manipulation, QR code handling, etc.
+- **src/types/**: Type definitions using JSDoc
+- **src/styles/**: CSS styling
+
+The application flow:
+
+1. Users connect via WebRTC using manual signaling (QR codes or copy/paste)
+2. Upon successful connection, the game starts with synchronized countdown
+3. The Host initially controls the ball, and after each volley, control passes to the receiving player
+4. Game state is synchronized between players with minimal data transfer
+
 ## Gameplay
 
 The gameplay is classic pong.
