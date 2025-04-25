@@ -2,48 +2,45 @@ import { Connection } from './network/connection.js';
 import { GameEngine } from './game/engine.js';
 import { GameRenderer } from './game/renderer.js';
 import { generateQRCode, initQRScanner as createQRScanner, clearQRScanner } from './lib/qrcode.js';
+import { $, $$, showScene } from './lib/dom.js';
 import settings from './settings.json';
 
 /** @typedef {import('./types/index.js').GameMessage} GameMessage */
 
 // DOM Elements
-const connectionOptions = document.getElementById('connection-options');
-const gameScreen = document.getElementById('game-screen');
+const connectionOptions = $('connection-options');
+const gameScreen = $('game-screen');
 /** @type {HTMLButtonElement} */
-const hostBtn = /** @type {HTMLButtonElement} */ (document.getElementById('host-btn'));
+const hostBtn = /** @type {HTMLButtonElement} */ ($('host-btn'));
 /** @type {HTMLButtonElement} */
-const guestBtn = /** @type {HTMLButtonElement} */ (document.getElementById('guest-btn'));
-const hostScreen = document.getElementById('host-screen');
-const guestScreen = document.getElementById('guest-screen');
-const qrHost = document.getElementById('qr-host');
+const guestBtn = /** @type {HTMLButtonElement} */ ($('guest-btn'));
+const hostScreen = $('host-screen');
+const guestScreen = $('guest-screen');
+const qrHost = $('qr-host');
 /** @type {HTMLTextAreaElement} */
-const offerData = /** @type {HTMLTextAreaElement} */ (document.getElementById('offer-data'));
+const offerData = /** @type {HTMLTextAreaElement} */ ($('offer-data'));
 /** @type {HTMLTextAreaElement} */
-const offerInput = /** @type {HTMLTextAreaElement} */ (document.getElementById('offer-input'));
+const offerInput = /** @type {HTMLTextAreaElement} */ ($('offer-input'));
 /** @type {HTMLButtonElement} */
-const submitOfferBtn = /** @type {HTMLButtonElement} */ (
-  document.getElementById('submit-offer-btn')
-);
-const hostAnswerInput = document.getElementById('host-answer-input');
-const guestAnswerOutput = document.getElementById('guest-answer-output');
+const submitOfferBtn = /** @type {HTMLButtonElement} */ ($('submit-offer-btn'));
+const hostAnswerInput = $('host-answer-input');
+const guestAnswerOutput = $('guest-answer-output');
 /** @type {HTMLTextAreaElement} */
-const answerData = /** @type {HTMLTextAreaElement} */ (document.getElementById('answer-data'));
+const answerData = /** @type {HTMLTextAreaElement} */ ($('answer-data'));
 /** @type {HTMLTextAreaElement} */
-const answerInput = /** @type {HTMLTextAreaElement} */ (document.getElementById('answer-input'));
+const answerInput = /** @type {HTMLTextAreaElement} */ ($('answer-input'));
 /** @type {HTMLButtonElement} */
-const submitAnswerBtn = /** @type {HTMLButtonElement} */ (
-  document.getElementById('submit-answer-btn')
-);
-const guestConnectionStatus = document.getElementById('guest-connection-status');
-const connectionSuccess = document.getElementById('connection-success');
+const submitAnswerBtn = /** @type {HTMLButtonElement} */ ($('submit-answer-btn'));
+const guestConnectionStatus = $('guest-connection-status');
+const connectionSuccess = $('connection-success');
 /** @type {HTMLButtonElement} */
-const startGameBtn = /** @type {HTMLButtonElement} */ (document.getElementById('start-game-btn'));
+const startGameBtn = /** @type {HTMLButtonElement} */ ($('start-game-btn'));
 /** @type {HTMLCanvasElement} */
-const gameCanvas = /** @type {HTMLCanvasElement} */ (document.getElementById('game-canvas'));
+const gameCanvas = /** @type {HTMLCanvasElement} */ ($('game-canvas'));
 /** @type {HTMLElement} */
-const playerScore = /** @type {HTMLElement} */ (document.getElementById('player-score'));
+const playerScore = /** @type {HTMLElement} */ ($('player-score'));
 /** @type {HTMLElement} */
-const opponentScore = /** @type {HTMLElement} */ (document.getElementById('opponent-score'));
+const opponentScore = /** @type {HTMLElement} */ ($('opponent-score'));
 
 // Game state
 /** @type {Connection} */
@@ -72,7 +69,7 @@ function init() {
   startGameBtn.addEventListener('click', startGame);
 
   // Add event listener for the play again button
-  const playAgainBtn = document.getElementById('play-again-btn');
+  const playAgainBtn = $('play-again-btn');
   if (playAgainBtn) {
     playAgainBtn.addEventListener('click', startGame);
   }
@@ -82,13 +79,12 @@ function init() {
   answerInput.addEventListener('paste', handlePaste);
 
   // Add event listener for the host done button
-  const hostDoneBtn = document.getElementById('host-done-btn');
+  const hostDoneBtn = $('host-done-btn');
   if (hostDoneBtn) {
     hostDoneBtn.addEventListener('click', showHostWaitingScreen);
   }
 
   // Add event listener for QR code click to copy (host)
-  const qrHost = document.getElementById('qr-host');
   if (qrHost) {
     qrHost.addEventListener('click', () => {
       copyToClipboard(offerData.value);
@@ -99,7 +95,7 @@ function init() {
   }
 
   // Add event listener for QR code click to copy (guest)
-  const qrGuest = document.getElementById('qr-guest');
+  const qrGuest = $('qr-guest');
   if (qrGuest) {
     qrGuest.addEventListener('click', () => {
       copyToClipboard(answerData.value);
@@ -158,7 +154,7 @@ async function initHost() {
   // Hide the connection options
   connectionOptions.classList.add('hidden');
 
-  hostScreen.classList.remove('hidden');
+  showScene('host-screen');
 
   try {
     // Create connection
@@ -186,7 +182,10 @@ async function initHost() {
  */
 function showHostWaitingScreen() {
   // Hide the share section
-  document.getElementById('host-share-section').classList.add('hidden');
+  const hostShareSection = $('host-share-section');
+  if (hostShareSection) {
+    hostShareSection.classList.add('hidden');
+  }
 
   hostAnswerInput.classList.remove('hidden');
 
@@ -252,7 +251,7 @@ function initGuest() {
   connectionOptions.classList.add('hidden');
 
   // Show the guest screen
-  guestScreen.classList.remove('hidden');
+  showScene('guest-screen');
   // Initialize the QR scanner for the guest using the host's scanner implementation
   initHostQRScanner();
 }
@@ -288,40 +287,37 @@ async function submitOffer() {
     // Process the offer data
     connection
       .initAsGuest(offerValue)
-      .then(answerData => {
+      .then(answerDataValue => {
         // Hide the offer input section
-        hideOfferInputSection();
-
-        // Show the answer data
-        /** @type {HTMLTextAreaElement} */
-        const answerDataElement = /** @type {HTMLTextAreaElement} */ (
-          document.getElementById('answer-data')
-        );
-        if (answerDataElement) {
-          answerDataElement.value = answerData;
+        const guestOfferSection = $('guest-offer-section');
+        if (guestOfferSection) {
+          guestOfferSection.classList.add('hidden');
         }
 
-        const answerSection = document.getElementById('answer-section');
+        // Show the answer data
+        if (answerData) {
+          answerData.value = answerDataValue;
+        }
+
+        const answerSection = $('answer-section');
         if (answerSection) {
           answerSection.classList.remove('hidden');
         } else {
           // If answer-section doesn't exist, show the guest-answer-output instead
-          const guestAnswerOutput = document.getElementById('guest-answer-output');
+          const guestAnswerOutput = $('guest-answer-output');
           if (guestAnswerOutput) {
             guestAnswerOutput.classList.remove('hidden');
           }
         }
 
         // Generate QR code for the answer data
-        const qrContainer = document.getElementById('qr-guest');
+        const qrContainer = $('qr-guest');
         if (qrContainer) {
-          generateQRCode(answerData, qrContainer);
+          generateQRCode(answerDataValue, qrContainer);
         }
 
         // Update status
-        if (guestConnectionStatus) {
-          guestConnectionStatus.textContent = 'Waiting for host to accept...';
-        }
+        guestConnectionStatus.textContent = 'Waiting for host to accept...';
 
         // Note: The connection will be established automatically when the host processes the answer
         // through the onConnected callback (handleConnectionSuccess)
@@ -351,17 +347,6 @@ async function submitOffer() {
 }
 
 /**
- * Hide the offer input section
- */
-function hideOfferInputSection() {
-  // Hide the entire offer section container
-  const offerSection = document.getElementById('guest-offer-section');
-  if (offerSection) {
-    offerSection.classList.add('hidden');
-  }
-}
-
-/**
  * Handle successful connection
  */
 function handleConnectionSuccess() {
@@ -370,15 +355,15 @@ function handleConnectionSuccess() {
   guestScreen.classList.add('hidden');
 
   // Show connection success screen
-  connectionSuccess.classList.remove('hidden');
+  showScene('connection-success');
 
   // Update connection status for both host and guest
-  const hostConnectionStatus = document.getElementById('host-connection-status');
+  const hostConnectionStatus = $('host-connection-status');
   if (hostConnectionStatus) {
     hostConnectionStatus.textContent = 'Connected!';
   }
 
-  const guestConnectionStatus = document.getElementById('guest-connection-status');
+  const guestConnectionStatus = $('guest-connection-status');
   if (guestConnectionStatus) {
     guestConnectionStatus.textContent = 'Connected!';
   }
@@ -462,13 +447,10 @@ function handleMessage(message) {
 function updatePingDisplay(rtt) {
   const pingText = `Ping: ${rtt}ms`;
 
-  // Try direct DOM manipulation first
   try {
-    // Get all ping status elements by ID
-    const pingStatus = document.getElementById('ping-status');
-    const gamePingStatus = document.getElementById('game-ping-status');
+    const pingStatus = $('ping-status');
+    const gamePingStatus = $('game-ping-status');
 
-    // Update them if they exist
     if (pingStatus) {
       pingStatus.textContent = pingText;
     }
@@ -477,20 +459,14 @@ function updatePingDisplay(rtt) {
       gamePingStatus.textContent = pingText;
     }
 
-    // Fallback to query selector if direct access didn't work
     if (!pingStatus && !gamePingStatus) {
-      document.querySelectorAll('[id$="ping-status"]').forEach(element => {
+      $$('[id$="ping-status"]').forEach(element => {
         element.textContent = pingText;
       });
     }
 
-    // Ultimate fallback - create a ping display if none exists
-    if (
-      !pingStatus &&
-      !gamePingStatus &&
-      document.querySelectorAll('[id$="ping-status"]').length === 0
-    ) {
-      const gameScreen = document.getElementById('game-screen');
+    if (!pingStatus && !gamePingStatus && $$('[id$="ping-status"]').length === 0) {
+      const gameScreen = $('game-screen');
       if (gameScreen) {
         const newPingStatus = document.createElement('div');
         newPingStatus.id = 'emergency-ping-status';
@@ -535,7 +511,7 @@ function resetConnection() {
   connectionSuccess.classList.add('hidden');
 
   // Reset host screen sections
-  const hostShareSection = document.getElementById('host-share-section');
+  const hostShareSection = $('host-share-section');
   if (hostShareSection) {
     hostShareSection.classList.remove('hidden');
   }
@@ -543,7 +519,7 @@ function resetConnection() {
   hostAnswerInput.classList.add('hidden');
 
   // Reset guest screen sections
-  const guestOfferSection = document.getElementById('guest-offer-section');
+  const guestOfferSection = $('guest-offer-section');
   if (guestOfferSection) {
     guestOfferSection.classList.remove('hidden');
   }
@@ -598,7 +574,7 @@ function startCountdown(startTimestamp) {
   console.log('Countdown will start at timestamp:', startTimestamp);
 
   // Hide the game over screen if it's visible
-  const gameOverScreen = document.getElementById('game-over-screen');
+  const gameOverScreen = $('game-over-screen');
   if (gameOverScreen) {
     gameOverScreen.classList.add('hidden');
   }
@@ -610,8 +586,8 @@ function startCountdown(startTimestamp) {
   connectionSuccess.classList.add('hidden');
 
   // Show countdown screen
-  const countdownScreen = document.getElementById('countdown-screen');
-  const countdownNumber = document.getElementById('countdown-number');
+  const countdownScreen = $('countdown-screen');
+  const countdownNumber = $('countdown-number');
 
   if (countdownScreen && countdownNumber) {
     countdownScreen.classList.remove('hidden');
@@ -829,20 +805,20 @@ function handleGameOver(localWon) {
   }
 
   // Show game over screen
-  const gameOverScreen = document.getElementById('game-over-screen');
+  const gameOverScreen = $('game-over-screen');
   if (gameOverScreen) {
     gameOverScreen.classList.remove('hidden');
 
     // Update game result message
-    const gameResult = document.getElementById('game-result');
+    const gameResult = $('game-result');
     if (gameResult) {
       gameResult.textContent = localWon ? 'You Win!' : 'You Lose!';
     }
 
     // Update final scores
-    const finalPlayerScore = document.getElementById('final-player-score');
-    const finalOpponentScore = document.getElementById('final-opponent-score');
-    const gameOverPingStatus = document.getElementById('game-over-ping-status');
+    const finalPlayerScore = $('final-player-score');
+    const finalOpponentScore = $('final-opponent-score');
+    const gameOverPingStatus = $('game-over-ping-status');
 
     if (finalPlayerScore && finalOpponentScore) {
       finalPlayerScore.textContent = playerScore.textContent;
@@ -851,7 +827,7 @@ function handleGameOver(localWon) {
 
     // Copy ping status to game over screen
     if (gameOverPingStatus) {
-      const gamePingStatus = document.getElementById('game-ping-status');
+      const gamePingStatus = $('game-ping-status');
       if (gamePingStatus) {
         gameOverPingStatus.textContent = gamePingStatus.textContent;
       }
@@ -1017,7 +993,7 @@ function submitAnswer() {
   }
 
   // Update status to show we're connecting
-  const hostConnectionStatus = document.getElementById('host-connection-status');
+  const hostConnectionStatus = $('host-connection-status');
   if (hostConnectionStatus) {
     hostConnectionStatus.textContent = 'Connecting...';
   }
