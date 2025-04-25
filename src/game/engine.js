@@ -94,7 +94,8 @@ export class GameEngine {
     // Play game start sound
     this.soundEffects.playGameStart();
 
-    // If host, initialize ball movement, serving towards remote player initially
+    // For the initial serve, we still use isHost because the ball is stationary
+    // and isSourceOfTruth() won't work correctly
     if (this.isHost) {
       this.initBallMovement(false); // Serve towards remote player (top)
     }
@@ -103,7 +104,7 @@ export class GameEngine {
   }
 
   /**
-   * Initialize ball movement (host only)
+   * Initialize ball movement (called by the source of truth player)
    * @param {boolean} [serveTowardsLocal=false] - If true, serve towards the local player (bottom), otherwise serve towards remote (top).
    * @private
    */
@@ -218,17 +219,17 @@ export class GameEngine {
     // Check if ball went out of bounds (top/bottom)
     // Let handleBallOut manage scoring and reset.
     if (ball.y > settings.fieldHeight + ball.radius || ball.y < -ball.radius) {
-      // Only the host should process scoring and reset logic
-      if (this.isHost) {
+      // Only the source of truth should process scoring and reset logic
+      if (this.isSourceOfTruth()) {
         this.handleBallOut();
       }
-      // Non-host clients will receive the updated state from the host.
-      // No immediate action needed here for the non-host.
+      // Non-source clients will receive the updated state from the source of truth.
+      // No immediate action needed here for the non-source.
     }
 
     // Collision with paddles (handled in checkCollisions)
-    // Only the host should check for collisions
-    if (this.isHost) {
+    // Only the source of truth should check for collisions
+    if (this.isSourceOfTruth()) {
       this.checkCollisions();
     }
   }
@@ -392,7 +393,16 @@ export class GameEngine {
     } else {
       // Reset ball for next round, serving towards the player who LOST the point
       const serveTowardsLocal = pointWinner === 'remote'; // If remote won point, serve towards local
-      this.initBallMovement(serveTowardsLocal);
+
+      // After a point, the source of truth for the next serve is determined by the serve direction
+      // If serving towards local (bottom), the remote player (top) is the source of truth
+      // If serving towards remote (top), the local player (bottom) is the source of truth
+      const isSourceForNextServe =
+        (serveTowardsLocal && !this.isHost) || (!serveTowardsLocal && this.isHost);
+
+      if (isSourceForNextServe) {
+        this.initBallMovement(serveTowardsLocal);
+      }
     }
   }
 

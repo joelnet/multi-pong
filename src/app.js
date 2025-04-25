@@ -404,22 +404,19 @@ function handleMessage(message) {
     switch (message.type) {
       case 'ball':
         // Guest receives ball data from host and transforms Y components for its view
-        if (!isHost) {
-          if (message.data) {
-            const receivedBall = message.data;
-            const fieldHeight = settings.fieldHeight; // Use settings
-            const transformedBall = {
-              ...receivedBall, // Copy all properties first
-              y: fieldHeight - receivedBall.y, // Flip Y position
-              velocityY: -receivedBall.velocityY, // Flip Y velocity
-              // x and velocityX remain the same as host's
-            };
-            gameEngine.updateFromRemote({ ball: transformedBall });
-          } else {
-            console.warn('Guest received invalid ball data:', message.data);
-          }
+        if (message.data) {
+          const receivedBall = message.data;
+          const fieldHeight = settings.fieldHeight; // Use settings
+          const transformedBall = {
+            ...receivedBall, // Copy all properties first
+            y: fieldHeight - receivedBall.y, // Flip Y position
+            velocityY: -receivedBall.velocityY, // Flip Y velocity
+            // x and velocityX remain the same as host's
+          };
+          gameEngine.updateFromRemote({ ball: transformedBall });
+        } else {
+          console.warn('Guest received invalid ball data:', message.data);
         }
-        // Host ignores ball messages (it's the source of truth)
         break;
       case 'paddle':
         // Guest receives paddle data from host
@@ -703,8 +700,8 @@ function gameLoop(timestamp) {
   // Update game state
   gameEngine.update(timestamp);
 
-  // If host, send the latest ball state to the guest
-  if (isHost && connection) {
+  // If source of truth, send the latest ball state to the guest
+  if (gameEngine && gameEngine.isSourceOfTruth() && connection) {
     const gameState = gameEngine.getGameState();
 
     // Note: Ignoring isReturn flag for now to focus on basic animation
