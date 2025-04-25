@@ -681,7 +681,8 @@ function startGameAfterCountdown() {
 
   // Start the game
   gameEngine.startGame();
-  if (!gameEngine.isSourceOfTruth()) {
+  if (!isHost) {
+    // guest needs to serve the first ball
     sendBallData(gameEngine.gameState.ball, false);
   }
 
@@ -705,6 +706,7 @@ function gameLoop(timestamp) {
 
   // If source of truth, send the latest ball state to the guest
   if (gameEngine && gameEngine.isSourceOfTruth() && connection) {
+    console.log('ball', gameEngine.gameState.ball);
     const gameState = gameEngine.getGameState();
 
     // Note: Ignoring isReturn flag for now to focus on basic animation
